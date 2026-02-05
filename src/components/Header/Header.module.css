@@ -119,3 +119,37 @@
   border-color: #ef4444;
   color: #ef4444;
 }
+
+.backupControls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.backupBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #2d2d44;
+  border: 1px solid #3d3d54;
+  border-radius: 6px;
+  color: #8b8b9e;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.backupBtn:hover {
+  background: #3d3d54;
+  border-color: #4d4d64;
+  color: #e4e4e7;
+}
+
+.backupBtn svg {
+  flex-shrink: 0;
+}
+
+.hiddenInput {
+  display: none;
+}
