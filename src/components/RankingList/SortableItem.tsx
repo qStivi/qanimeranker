@@ -4,6 +4,7 @@ import { CSS } from '@dnd-kit/utilities';
 import type { RankingListItem, TitleFormat, ScoreFormat, CalculatedScore } from '../../api/types';
 import { AnimeCard } from '../AnimeCard';
 import { RatingMarker } from '../RatingMarker';
+import { FolderHeader } from '../FolderHeader';
 
 type ViewMode = 'list' | 'grid';
 
@@ -14,6 +15,10 @@ interface SortableItemProps {
   scoreFormat: ScoreFormat;
   calculatedScore?: CalculatedScore;
   onRemoveMarker: (id: string) => void;
+  onRemoveFolder: (id: string) => void;
+  onToggleFolder: (id: string) => void;
+  onRenameFolder: (id: string, label: string) => void;
+  folderItemCount: number;
   viewMode: ViewMode;
 }
 
@@ -24,6 +29,10 @@ export const SortableItem = memo(function SortableItem({
   scoreFormat,
   calculatedScore,
   onRemoveMarker,
+  onRemoveFolder,
+  onToggleFolder,
+  onRenameFolder,
+  folderItemCount,
   viewMode,
 }: SortableItemProps) {
   const {
@@ -54,6 +63,16 @@ export const SortableItem = memo(function SortableItem({
           isDragging={isDragging}
           viewMode={viewMode}
         />
+      ) : item.type === 'folder' ? (
+        <FolderHeader
+          folder={item}
+          itemCount={folderItemCount}
+          onToggle={() => onToggleFolder(item.id)}
+          onRemove={() => onRemoveFolder(item.id)}
+          onRename={(label) => onRenameFolder(item.id, label)}
+          isDragging={isDragging}
+          viewMode={viewMode}
+        />
       ) : (
         <RatingMarker
           marker={item}
@@ -67,12 +86,25 @@ export const SortableItem = memo(function SortableItem({
   );
 }, (prevProps, nextProps) => {
   // Custom comparison - only re-render if relevant props changed
-  return (
+  // For folders, also check isExpanded and folderItemCount
+  const baseEqual =
     prevProps.item.id === nextProps.item.id &&
     prevProps.rank === nextProps.rank &&
     prevProps.titleFormat === nextProps.titleFormat &&
     prevProps.scoreFormat === nextProps.scoreFormat &&
     prevProps.calculatedScore?.score === nextProps.calculatedScore?.score &&
-    prevProps.viewMode === nextProps.viewMode
-  );
+    prevProps.viewMode === nextProps.viewMode &&
+    prevProps.folderItemCount === nextProps.folderItemCount;
+
+  if (!baseEqual) return false;
+
+  // Check folder-specific props
+  if (prevProps.item.type === 'folder' && nextProps.item.type === 'folder') {
+    return (
+      prevProps.item.isExpanded === nextProps.item.isExpanded &&
+      prevProps.item.label === nextProps.item.label
+    );
+  }
+
+  return true;
 });

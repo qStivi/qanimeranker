@@ -107,9 +107,11 @@ function calculateSegmentedDistribution(
       }
       previousMarkerScore = item.minRating - 1; // Next segment starts just below this marker
       currentSegmentItems = [];
-    } else {
+    } else if (item.type === 'anime') {
+      // Only add anime items, skip folders
       currentSegmentItems.push(item);
     }
+    // Folders are skipped - they don't affect scoring
   }
 
   // Handle final segment (below all markers)

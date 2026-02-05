@@ -9,6 +9,7 @@ import type {
   RankingListItem,
   RankingItem,
   RatingMarker,
+  RankingFolder,
   TitleFormat,
   AniListMediaListEntry,
 } from '../api/types';
@@ -28,6 +29,10 @@ type RankingAction =
   | { type: 'ADD_MARKER'; marker: RatingMarker; atIndex: number }
   | { type: 'REMOVE_MARKER'; id: string }
   | { type: 'UPDATE_MARKER'; id: string; minRating: number; label: string }
+  | { type: 'ADD_FOLDER'; folder: RankingFolder; atIndex: number }
+  | { type: 'REMOVE_FOLDER'; id: string }
+  | { type: 'RENAME_FOLDER'; id: string; label: string }
+  | { type: 'TOGGLE_FOLDER'; id: string }
   | { type: 'SET_TITLE_FORMAT'; format: TitleFormat }
   | { type: 'SET_VIEW_MODE'; mode: ViewMode }
   | { type: 'LOAD_FROM_ENTRIES'; entries: AniListMediaListEntry[] }
@@ -45,6 +50,10 @@ function saveToStorage(items: RankingListItem[]) {
     ...(item.type === 'marker' && {
       minRating: item.minRating,
       label: item.label,
+    }),
+    ...(item.type === 'folder' && {
+      label: item.label,
+      isExpanded: item.isExpanded,
     }),
   }));
   localStorage.setItem(STORAGE_KEY, JSON.stringify(orderData));
@@ -106,6 +115,39 @@ function rankingReducer(state: RankingState, action: RankingAction): RankingStat
       return { ...state, items: newItems };
     }
 
+    case 'ADD_FOLDER': {
+      const newItems = [...state.items];
+      newItems.splice(action.atIndex, 0, action.folder);
+      saveToStorage(newItems);
+      return { ...state, items: newItems };
+    }
+
+    case 'REMOVE_FOLDER': {
+      const newItems = state.items.filter(item => item.id !== action.id);
+      saveToStorage(newItems);
+      return { ...state, items: newItems };
+    }
+
+    case 'RENAME_FOLDER': {
+      const newItems = state.items.map(item =>
+        item.type === 'folder' && item.id === action.id
+          ? { ...item, label: action.label }
+          : item
+      );
+      saveToStorage(newItems);
+      return { ...state, items: newItems };
+    }
+
+    case 'TOGGLE_FOLDER': {
+      const newItems = state.items.map(item =>
+        item.type === 'folder' && item.id === action.id
+          ? { ...item, isExpanded: !item.isExpanded }
+          : item
+      );
+      saveToStorage(newItems);
+      return { ...state, items: newItems };
+    }
+
     case 'SET_TITLE_FORMAT': {
       saveTitleFormat(action.format);
       return { ...state, titleFormat: action.format };
@@ -124,10 +166,11 @@ function rankingReducer(state: RankingState, action: RankingAction): RankingStat
       if (savedOrder) {
         try {
           const orderData = JSON.parse(savedOrder) as Array<{
-            type: 'anime' | 'marker';
+            type: 'anime' | 'marker' | 'folder';
             id: string;
             minRating?: number;
             label?: string;
+            isExpanded?: boolean;
           }>;
 
           // Create a map of entries by mediaId
@@ -147,6 +190,13 @@ function rankingReducer(state: RankingState, action: RankingAction): RankingStat
                 id: orderItem.id,
                 minRating: orderItem.minRating || 50,
                 label: orderItem.label || 'Rating Marker',
+              });
+            } else if (orderItem.type === 'folder') {
+              items.push({
+                type: 'folder',
+                id: orderItem.id,
+                label: orderItem.label || 'Folder',
+                isExpanded: orderItem.isExpanded ?? true,
               });
             } else {
               // Extract mediaId from the id (format: anime-{mediaId})
@@ -238,6 +288,7 @@ interface RankingContextType {
   dispatch: Dispatch<RankingAction>;
   animeItems: RankingItem[];
   markers: RatingMarker[];
+  folders: RankingFolder[];
 }
 
 const RankingContext = createContext<RankingContextType | null>(null);
@@ -252,9 +303,10 @@ export function RankingProvider({ children }: { children: ReactNode }) {
 
   const animeItems = state.items.filter((item): item is RankingItem => item.type === 'anime');
   const markers = state.items.filter((item): item is RatingMarker => item.type === 'marker');
+  const folders = state.items.filter((item): item is RankingFolder => item.type === 'folder');
 
   return (
-    <RankingContext.Provider value={{ state, dispatch, animeItems, markers }}>
+    <RankingContext.Provider value={{ state, dispatch, animeItems, markers, folders }}>
       {children}
     </RankingContext.Provider>
   );

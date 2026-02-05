@@ -17,7 +17,7 @@ import {
 } from '@dnd-kit/sortable';
 import { useRanking } from '../../context/RankingContext';
 import { useAuth } from '../../context/AuthContext';
-import type { ScoreFormat, CalculatedScore, RatingMarker as RatingMarkerType } from '../../api/types';
+import type { ScoreFormat, CalculatedScore, RatingMarker as RatingMarkerType, RankingFolder, RankingListItem } from '../../api/types';
 import { calculateScores, MARKER_PRESETS } from '../../utils/ratingCalculator';
 import { SortableItem } from './SortableItem';
 import styles from './RankingList.module.css';
@@ -27,9 +27,11 @@ interface RankingListProps {
 }
 
 export function RankingList({ onScoresCalculated }: RankingListProps) {
-  const { state, dispatch, animeItems } = useRanking();
+  const { state, dispatch, animeItems, folders } = useRanking();
   const { user } = useAuth();
   const [showAddMarker, setShowAddMarker] = useState(false);
+  const [showAddFolder, setShowAddFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
 
   const scoreFormat: ScoreFormat = user?.mediaListOptions?.scoreFormat || 'POINT_100';
 
@@ -68,24 +70,139 @@ export function RankingList({ onScoresCalculated }: RankingListProps) {
     return map;
   }, [state.items]);
 
+  // Filter items for rendering based on folder collapse state
+  const visibleItems = useMemo(() => {
+    const result: RankingListItem[] = [];
+    let skipUntilNext = false;
+
+    for (const item of state.items) {
+      if (item.type === 'folder') {
+        result.push(item);
+        skipUntilNext = !item.isExpanded;
+      } else if (item.type === 'marker') {
+        result.push(item);
+        skipUntilNext = false; // Markers end folder content
+      } else if (!skipUntilNext) {
+        result.push(item);
+      }
+    }
+    return result;
+  }, [state.items]);
+
+  // Get IDs of items belonging to a folder (folder + its anime contents)
+  function getFolderBlockIds(items: RankingListItem[], folderId: string): string[] {
+    const folderIndex = items.findIndex(i => i.id === folderId);
+    if (folderIndex === -1) return [folderId];
+
+    const blockIds = [folderId];
+    for (let i = folderIndex + 1; i < items.length; i++) {
+      const item = items[i];
+      if (item.type === 'folder' || item.type === 'marker') break;
+      blockIds.push(item.id);
+    }
+    return blockIds;
+  }
+
+  // Move a block of items (folder + contents) to a new position
+  function moveItemsAsBlock(
+    items: RankingListItem[],
+    blockIds: string[],
+    targetIndex: number
+  ): RankingListItem[] {
+    // Extract block items
+    const blockItems = items.filter(item => blockIds.includes(item.id));
+    // Remove block items from array
+    const remaining = items.filter(item => !blockIds.includes(item.id));
+
+    // Adjust target index for items removed before the target
+    const firstBlockIndex = items.findIndex(item => blockIds.includes(item.id));
+    let adjustedTarget = targetIndex;
+    if (firstBlockIndex < targetIndex) {
+      adjustedTarget = targetIndex - blockIds.length;
+    }
+
+    // Insert block at new position
+    remaining.splice(Math.max(0, adjustedTarget), 0, ...blockItems);
+    return remaining;
+  }
+
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
 
     if (over && active.id !== over.id) {
-      const oldIndex = indexMap.get(String(active.id));
-      const newIndex = indexMap.get(String(over.id));
+      const activeId = String(active.id);
+      const overId = String(over.id);
 
-      if (oldIndex !== undefined && newIndex !== undefined) {
-        dispatch({
-          type: 'SET_ITEMS',
-          items: arrayMove(state.items, oldIndex, newIndex),
-        });
+      // Check if dragging a folder
+      const activeItem = state.items.find(i => i.id === activeId);
+
+      if (activeItem?.type === 'folder') {
+        // Move folder and its contents as a block
+        const blockIds = getFolderBlockIds(state.items, activeId);
+        const targetIndex = indexMap.get(overId);
+
+        if (targetIndex !== undefined) {
+          dispatch({
+            type: 'SET_ITEMS',
+            items: moveItemsAsBlock(state.items, blockIds, targetIndex),
+          });
+        }
+      } else {
+        // Normal single-item move
+        const oldIndex = indexMap.get(activeId);
+        const newIndex = indexMap.get(overId);
+
+        if (oldIndex !== undefined && newIndex !== undefined) {
+          dispatch({
+            type: 'SET_ITEMS',
+            items: arrayMove(state.items, oldIndex, newIndex),
+          });
+        }
       }
     }
   }
 
   function handleRemoveMarker(id: string) {
     dispatch({ type: 'REMOVE_MARKER', id });
+  }
+
+  function handleRemoveFolder(id: string) {
+    dispatch({ type: 'REMOVE_FOLDER', id });
+  }
+
+  function handleToggleFolder(id: string) {
+    dispatch({ type: 'TOGGLE_FOLDER', id });
+  }
+
+  function handleRenameFolder(id: string, label: string) {
+    dispatch({ type: 'RENAME_FOLDER', id, label });
+  }
+
+  function handleAddFolder() {
+    const label = newFolderName.trim() || 'New Folder';
+    const folder: RankingFolder = {
+      type: 'folder',
+      id: `folder-${Date.now()}`,
+      label,
+      isExpanded: true,
+    };
+    dispatch({ type: 'ADD_FOLDER', folder, atIndex: 0 });
+    setNewFolderName('');
+    setShowAddFolder(false);
+  }
+
+  // Helper to count anime items belonging to a folder
+  function getFolderItemCount(items: RankingListItem[], folderId: string): number {
+    const folderIndex = items.findIndex(i => i.id === folderId);
+    if (folderIndex === -1) return 0;
+
+    let count = 0;
+    for (let i = folderIndex + 1; i < items.length; i++) {
+      const item = items[i];
+      if (item.type === 'folder' || item.type === 'marker') break;
+      if (item.type === 'anime') count++;
+    }
+    return count;
   }
 
   function handleAddMarker(preset: { value: number; label: string }) {
@@ -153,6 +270,8 @@ export function RankingList({ onScoresCalculated }: RankingListProps) {
         <div className={styles.stats}>
           <span>{animeItems.length} anime</span>
           <span className={styles.separator}>|</span>
+          <span>{folders.length} folders</span>
+          <span className={styles.separator}>|</span>
           <span>{state.items.filter(i => i.type === 'marker').length} markers</span>
         </div>
         <div className={styles.actions}>
@@ -175,13 +294,45 @@ export function RankingList({ onScoresCalculated }: RankingListProps) {
             </svg>
           </button>
           <button
+            className={styles.addFolderBtn}
+            onClick={() => {
+              setShowAddFolder(!showAddFolder);
+              setShowAddMarker(false);
+            }}
+          >
+            {showAddFolder ? 'Cancel' : '+ Add Folder'}
+          </button>
+          <button
             className={styles.addMarkerBtn}
-            onClick={() => setShowAddMarker(!showAddMarker)}
+            onClick={() => {
+              setShowAddMarker(!showAddMarker);
+              setShowAddFolder(false);
+            }}
           >
             {showAddMarker ? 'Cancel' : '+ Add Marker'}
           </button>
         </div>
       </div>
+
+      {showAddFolder && (
+        <div className={styles.folderForm}>
+          <input
+            type="text"
+            value={newFolderName}
+            onChange={(e) => setNewFolderName(e.target.value)}
+            placeholder="Folder name (e.g., Attack on Titan)"
+            className={styles.folderInput}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleAddFolder();
+              if (e.key === 'Escape') setShowAddFolder(false);
+            }}
+            autoFocus
+          />
+          <button className={styles.createFolderBtn} onClick={handleAddFolder}>
+            Create Folder
+          </button>
+        </div>
+      )}
 
       {showAddMarker && (
         <div className={styles.markerPresets}>
@@ -207,11 +358,11 @@ export function RankingList({ onScoresCalculated }: RankingListProps) {
         onDragEnd={handleDragEnd}
       >
         <SortableContext
-          items={state.items.map(i => i.id)}
+          items={visibleItems.map(i => i.id)}
           strategy={state.viewMode === 'grid' ? rectSortingStrategy : verticalListSortingStrategy}
         >
           <div className={`${styles.list} ${state.viewMode === 'grid' ? styles.gridView : ''}`}>
-            {state.items.map(item => (
+            {visibleItems.map(item => (
               <SortableItem
                 key={item.id}
                 item={item}
@@ -222,6 +373,10 @@ export function RankingList({ onScoresCalculated }: RankingListProps) {
                   item.type === 'anime' ? scoreMap.get(item.mediaId) : undefined
                 }
                 onRemoveMarker={handleRemoveMarker}
+                onRemoveFolder={handleRemoveFolder}
+                onToggleFolder={handleToggleFolder}
+                onRenameFolder={handleRenameFolder}
+                folderItemCount={item.type === 'folder' ? getFolderItemCount(state.items, item.id) : 0}
                 viewMode={state.viewMode}
               />
             ))}

@@ -59,7 +59,14 @@ export interface RatingMarker {
   label: string;
 }
 
-export type RankingListItem = RankingItem | RatingMarker;
+export interface RankingFolder {
+  type: 'folder';
+  id: string;
+  label: string;
+  isExpanded: boolean;
+}
+
+export type RankingListItem = RankingItem | RatingMarker | RankingFolder;
 
 export interface CalculatedScore {
   mediaId: number;
