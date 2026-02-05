@@ -2,10 +2,16 @@ import { useState, useRef, useEffect } from 'react';
 import type { RankingFolder } from '../../api/types';
 import styles from './FolderHeader.module.css';
 
+interface PreviewItem {
+  coverUrl: string;
+  title: string;
+}
+
 interface FolderHeaderProps {
   folder: RankingFolder;
   itemCount: number;
-  onToggle: () => void;
+  previewItems?: PreviewItem[];
+  onOpen: () => void;
   onRemove: () => void;
   onRename: (newLabel: string) => void;
   isDragging?: boolean;
@@ -16,7 +22,8 @@ interface FolderHeaderProps {
 export function FolderHeader({
   folder,
   itemCount,
-  onToggle,
+  previewItems = [],
+  onOpen,
   onRemove,
   onRename,
   isDragging = false,
@@ -34,7 +41,8 @@ export function FolderHeader({
     }
   }, [isEditing]);
 
-  function handleDoubleClick() {
+  function handleDoubleClick(e: React.MouseEvent) {
+    e.stopPropagation();
     setEditValue(folder.label);
     setIsEditing(true);
   }
@@ -55,27 +63,54 @@ export function FolderHeader({
     }
   }
 
+  function handleClick(e: React.MouseEvent) {
+    // Don't open if clicking on buttons or editing
+    if (isEditing) return;
+    const target = e.target as HTMLElement;
+    if (target.closest('button') || target.closest('input')) return;
+    onOpen();
+  }
+
   const isGrid = viewMode === 'grid';
 
   return (
     <div
       className={`${styles.folder} ${isDragging ? styles.dragging : ''} ${isGrid ? styles.gridFolder : ''} ${isDropTarget ? styles.dropTarget : ''}`}
+      onClick={handleClick}
     >
-      <button
-        className={styles.toggleBtn}
-        onClick={onToggle}
-        title={folder.isExpanded ? 'Collapse folder' : 'Expand folder'}
-      >
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 16 16"
-          fill="currentColor"
-          className={`${styles.chevron} ${folder.isExpanded ? styles.expanded : ''}`}
+      {/* iOS-style preview grid for grid view */}
+      {isGrid && previewItems.length > 0 && (
+        <div className={styles.previewGrid}>
+          {previewItems.slice(0, 4).map((item, i) => (
+            <img
+              key={i}
+              src={item.coverUrl}
+              alt={item.title}
+              className={styles.previewThumb}
+            />
+          ))}
+          {/* Fill empty slots with placeholders */}
+          {previewItems.length < 4 && Array.from({ length: 4 - previewItems.length }).map((_, i) => (
+            <div key={`empty-${i}`} className={styles.previewEmpty} />
+          ))}
+        </div>
+      )}
+
+      {/* List view: show expand icon */}
+      {!isGrid && (
+        <button
+          className={styles.toggleBtn}
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpen();
+          }}
+          title="Open folder"
         >
-          <path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-        </svg>
-      </button>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+          </svg>
+        </button>
+      )}
 
       <div className={styles.folderIcon}>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
@@ -92,6 +127,7 @@ export function FolderHeader({
             onChange={(e) => setEditValue(e.target.value)}
             onBlur={handleBlur}
             onKeyDown={handleKeyDown}
+            onClick={(e) => e.stopPropagation()}
             className={styles.input}
           />
         ) : (
@@ -110,7 +146,10 @@ export function FolderHeader({
 
       <button
         className={styles.removeBtn}
-        onClick={onRemove}
+        onClick={(e) => {
+          e.stopPropagation();
+          onRemove();
+        }}
         title="Remove folder"
       >
         <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">

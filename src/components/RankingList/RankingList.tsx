@@ -19,9 +19,10 @@ import {
 } from '@dnd-kit/sortable';
 import { useRanking } from '../../context/RankingContext';
 import { useAuth } from '../../context/AuthContext';
-import type { ScoreFormat, CalculatedScore, RatingMarker as RatingMarkerType, RankingFolder, RankingListItem } from '../../api/types';
-import { calculateScores, MARKER_PRESETS } from '../../utils/ratingCalculator';
+import type { ScoreFormat, CalculatedScore, RatingMarker as RatingMarkerType, RankingFolder, RankingListItem, RankingItem } from '../../api/types';
+import { calculateScores, MARKER_PRESETS, getTitle } from '../../utils/ratingCalculator';
 import { SortableItem } from './SortableItem';
+import { FolderContentsModal } from '../FolderContentsModal';
 import styles from './RankingList.module.css';
 
 interface RankingListProps {
@@ -35,6 +36,7 @@ export function RankingList({ onScoresCalculated }: RankingListProps) {
   const [showAddFolder, setShowAddFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [dropTargetFolderId, setDropTargetFolderId] = useState<string | null>(null);
+  const [openFolderId, setOpenFolderId] = useState<string | null>(null);
 
   const scoreFormat: ScoreFormat = user?.mediaListOptions?.scoreFormat || 'POINT_100';
 
@@ -73,20 +75,13 @@ export function RankingList({ onScoresCalculated }: RankingListProps) {
     return map;
   }, [state.items]);
 
-  // Filter items for rendering based on folder collapse state (using parentFolderId)
+  // Filter items for rendering - always hide items that are in folders (shown in modal instead)
   const visibleItems = useMemo(() => {
-    // Build set of collapsed folder IDs
-    const collapsedFolderIds = new Set(
-      state.items
-        .filter((i): i is RankingFolder => i.type === 'folder' && !i.isExpanded)
-        .map(f => f.id)
-    );
-
     return state.items.filter(item => {
       if (item.type === 'folder' || item.type === 'marker') return true;
       if (item.type === 'anime') {
-        // Hide if parent folder is collapsed
-        return !item.parentFolderId || !collapsedFolderIds.has(item.parentFolderId);
+        // Hide items that belong to a folder - they're shown in the modal
+        return !item.parentFolderId;
       }
       return true;
     });
@@ -228,12 +223,33 @@ export function RankingList({ onScoresCalculated }: RankingListProps) {
     dispatch({ type: 'REMOVE_FOLDER', id });
   }
 
-  function handleToggleFolder(id: string) {
-    dispatch({ type: 'TOGGLE_FOLDER', id });
+  function handleOpenFolder(id: string) {
+    setOpenFolderId(id);
+  }
+
+  function handleCloseFolder() {
+    setOpenFolderId(null);
   }
 
   function handleRenameFolder(id: string, label: string) {
     dispatch({ type: 'RENAME_FOLDER', id, label });
+  }
+
+  function handleAddToFolder(itemId: string, folderId: string) {
+    dispatch({ type: 'MOVE_TO_FOLDER', itemId, folderId });
+  }
+
+  // Helper to get preview items for a folder (for iOS-style grid preview)
+  function getFolderPreviewItems(folderId: string): Array<{ coverUrl: string; title: string }> {
+    return state.items
+      .filter((item): item is RankingItem =>
+        item.type === 'anime' && item.parentFolderId === folderId
+      )
+      .slice(0, 4)
+      .map(item => ({
+        coverUrl: item.anime.coverImage.large,
+        title: getTitle(item.anime.title, state.titleFormat),
+      }));
   }
 
   function handleAddFolder() {
@@ -427,9 +443,12 @@ export function RankingList({ onScoresCalculated }: RankingListProps) {
                 }
                 onRemoveMarker={handleRemoveMarker}
                 onRemoveFolder={handleRemoveFolder}
-                onToggleFolder={handleToggleFolder}
+                onOpenFolder={handleOpenFolder}
                 onRenameFolder={handleRenameFolder}
+                onAddToFolder={handleAddToFolder}
                 folderItemCount={item.type === 'folder' ? getFolderItemCount(state.items, item.id) : 0}
+                folderPreviewItems={item.type === 'folder' ? getFolderPreviewItems(item.id) : undefined}
+                folders={folders}
                 isDropTarget={item.type === 'folder' && item.id === dropTargetFolderId}
                 viewMode={state.viewMode}
               />
@@ -437,6 +456,18 @@ export function RankingList({ onScoresCalculated }: RankingListProps) {
           </div>
         </SortableContext>
       </DndContext>
+
+      {/* Folder contents modal */}
+      {openFolderId && folders.find(f => f.id === openFolderId) && (
+        <FolderContentsModal
+          folder={folders.find(f => f.id === openFolderId)!}
+          onClose={handleCloseFolder}
+          titleFormat={state.titleFormat}
+          scoreFormat={scoreFormat}
+          scoreMap={scoreMap}
+          viewMode={state.viewMode}
+        />
+      )}
     </div>
   );
 }
