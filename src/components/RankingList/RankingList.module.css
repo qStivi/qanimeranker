@@ -173,9 +173,8 @@
   gap: 12px;
 }
 
-/* Markers and folders should span full width in grid view */
-.gridView > div:has([class*="marker"]),
-.gridView > div:has([class*="folder"]) {
+/* Only markers should span full width in grid view - folders look like cards */
+.gridView > div:has([class*="marker"]) {
   grid-column: 1 / -1;
 }
 

@@ -110,15 +110,16 @@
   color: #ef4444;
 }
 
-/* Grid View Styles - iOS-style folder */
+/* Grid View Styles - iOS-style folder (same size as anime cards) */
 .gridFolder {
   flex-direction: column;
-  padding: 12px;
-  gap: 10px;
-  min-height: 180px;
-  align-items: center;
+  padding: 0;
+  gap: 0;
+  align-items: stretch;
   justify-content: flex-start;
   position: relative;
+  overflow: hidden;
+  height: 100%;
 }
 
 .gridFolder .content {
@@ -126,10 +127,16 @@
   align-items: center;
   text-align: center;
   gap: 4px;
+  padding: 10px;
+  flex: 0;
 }
 
 .gridFolder .label {
   font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .gridFolder .count {
@@ -146,6 +153,8 @@
   right: 8px;
   opacity: 0;
   transition: opacity 0.15s;
+  z-index: 2;
+  background: rgba(0, 0, 0, 0.6);
 }
 
 .gridFolder:hover .removeBtn {
@@ -157,14 +166,14 @@
   background: rgba(30, 58, 95, 0.95);
 }
 
-/* iOS-style preview grid */
+/* iOS-style preview grid - fixed size */
 .previewGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 3px;
+  gap: 2px;
   width: 100%;
-  aspect-ratio: 1;
-  border-radius: 12px;
+  height: 200px;
+  border-radius: 0;
   overflow: hidden;
   background: rgba(0, 0, 0, 0.3);
 }
@@ -179,6 +188,17 @@
   width: 100%;
   height: 100%;
   background: rgba(45, 45, 68, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.previewEmpty::after {
+  content: '';
+  width: 24px;
+  height: 24px;
+  opacity: 0.3;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23f5c542'%3E%3Cpath d='M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z'/%3E%3C/svg%3E") no-repeat center;
 }
 
 /* Drop Target Styles - when anime is being dragged over folder */
@@ -191,6 +211,15 @@
 .dropTarget .folderIcon {
   color: #8fc1f1;
   animation: pulse 0.8s ease-in-out infinite;
+}
+
+/* Grid folder drop target - subtle highlight without size changes */
+.gridFolder.dropTarget {
+  box-shadow: 0 0 0 3px rgba(90, 159, 212, 0.5), 0 0 20px rgba(90, 159, 212, 0.3);
+}
+
+.gridFolder.dropTarget .previewGrid {
+  opacity: 0.7;
 }
 
 @keyframes pulse {
