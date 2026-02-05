@@ -1,0 +1,165 @@
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #0f0f17;
+}
+
+.main {
+  flex: 1;
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.content {
+  display: grid;
+  grid-template-columns: 1fr 350px;
+  gap: 24px;
+  align-items: start;
+}
+
+.ranking-column {
+  min-width: 0;
+}
+
+.sync-column {
+  position: sticky;
+  top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.reset-btn {
+  width: 100%;
+  padding: 12px 16px;
+  background: transparent;
+  border: 1px solid #3d3d54;
+  border-radius: 6px;
+  color: #8b8b9e;
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.reset-btn:hover:not(:disabled) {
+  border-color: #f59e0b;
+  color: #f59e0b;
+}
+
+.reset-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.loading-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  gap: 16px;
+  color: #8b8b9e;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #2d2d44;
+  border-top-color: #3d5afe;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.welcome {
+  max-width: 600px;
+  margin: 48px auto;
+  padding: 32px;
+  background: #1a1a2e;
+  border-radius: 12px;
+  border: 1px solid #2d2d44;
+  text-align: center;
+}
+
+.welcome h2 {
+  margin: 0 0 16px 0;
+  font-size: 24px;
+  color: #e4e4e7;
+}
+
+.welcome p {
+  margin: 0 0 24px 0;
+  color: #8b8b9e;
+  line-height: 1.6;
+}
+
+.welcome ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  text-align: left;
+}
+
+.welcome li {
+  padding: 12px 16px;
+  margin: 8px 0;
+  background: #12121c;
+  border-radius: 6px;
+  color: #d4d4d8;
+  font-size: 14px;
+}
+
+.welcome li::before {
+  content: '\2713';
+  margin-right: 12px;
+  color: #10b981;
+}
+
+.error {
+  max-width: 400px;
+  margin: 48px auto;
+  padding: 24px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.error p {
+  margin: 0 0 16px 0;
+  color: #ef4444;
+}
+
+.error button {
+  padding: 8px 24px;
+  background: #ef4444;
+  border: none;
+  border-radius: 6px;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.error button:hover {
+  background: #dc2626;
+}
+
+@media (max-width: 900px) {
+  .content {
+    grid-template-columns: 1fr;
+  }
+
+  .sync-column {
+    position: static;
+    order: -1;
+  }
+}

@@ -1,0 +1,156 @@
+.card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: #1a1a2e;
+  border-radius: 8px;
+  border: 1px solid #2d2d44;
+  cursor: grab;
+  /* Only transition border-color for hover effect - transform handled by dnd-kit */
+  transition: border-color 0.15s;
+}
+
+.card:hover {
+  border-color: #3d5afe;
+}
+
+.card.dragging {
+  will-change: transform;
+  transform: scale(1.02);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  border-color: #3d5afe;
+  cursor: grabbing;
+}
+
+.rank {
+  font-size: 14px;
+  font-weight: 600;
+  color: #8b8b9e;
+  min-width: 40px;
+  text-align: center;
+}
+
+.cover {
+  width: 50px;
+  height: 70px;
+  object-fit: cover;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #e4e4e7;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.meta {
+  display: flex;
+  gap: 8px;
+  font-size: 12px;
+  color: #6b6b7b;
+}
+
+.format {
+  background: #2d2d44;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.episodes {
+  color: #6b6b7b;
+}
+
+.score {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.scoreValue {
+  font-size: 14px;
+  font-weight: 600;
+  color: #3d5afe;
+}
+
+.scoreRaw {
+  font-size: 11px;
+  color: #6b6b7b;
+}
+
+.dragHandle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  color: #4a4a5a;
+  cursor: grab;
+}
+
+.dragHandle:hover {
+  color: #8b8b9e;
+}
+
+/* Grid View Styles */
+.gridCard {
+  flex-direction: column;
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+  height: 100%;
+}
+
+.gridCard .rank {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: rgba(0, 0, 0, 0.75);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  z-index: 1;
+}
+
+.gridCard .cover {
+  width: 100%;
+  height: 200px;
+  border-radius: 0;
+}
+
+.gridCard .info {
+  padding: 10px;
+  gap: 6px;
+}
+
+.gridCard .title {
+  font-size: 13px;
+  /* Allow wrapping in grid view - show up to 2 lines */
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-height: 1.3;
+}
+
+.gridCard .score {
+  margin-top: 4px;
+}
+
+.gridCard .scoreValue {
+  font-size: 13px;
+}
