@@ -9,6 +9,7 @@ interface FolderHeaderProps {
   onRemove: () => void;
   onRename: (newLabel: string) => void;
   isDragging?: boolean;
+  isDropTarget?: boolean;
   viewMode?: 'list' | 'grid';
 }
 
@@ -19,6 +20,7 @@ export function FolderHeader({
   onRemove,
   onRename,
   isDragging = false,
+  isDropTarget = false,
   viewMode = 'list',
 }: FolderHeaderProps) {
   const [isEditing, setIsEditing] = useState(false);
@@ -57,7 +59,7 @@ export function FolderHeader({
 
   return (
     <div
-      className={`${styles.folder} ${isDragging ? styles.dragging : ''} ${isGrid ? styles.gridFolder : ''}`}
+      className={`${styles.folder} ${isDragging ? styles.dragging : ''} ${isGrid ? styles.gridFolder : ''} ${isDropTarget ? styles.dropTarget : ''}`}
     >
       <button
         className={styles.toggleBtn}

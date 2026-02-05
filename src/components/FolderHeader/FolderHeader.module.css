@@ -126,3 +126,20 @@
   min-width: 350px;
   background: rgba(30, 58, 95, 0.95);
 }
+
+/* Drop Target Styles - when anime is being dragged over folder */
+.dropTarget {
+  border-color: #5a9fd4;
+  background: linear-gradient(135deg, #1e4a6f 0%, #1a3454 100%);
+  box-shadow: 0 0 0 2px rgba(90, 159, 212, 0.3), 0 0 12px rgba(90, 159, 212, 0.2);
+}
+
+.dropTarget .folderIcon {
+  color: #8fc1f1;
+  animation: pulse 0.8s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}

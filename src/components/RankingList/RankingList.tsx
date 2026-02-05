@@ -7,6 +7,8 @@ import {
   useSensor,
   useSensors,
   type DragEndEvent,
+  type DragOverEvent,
+  type DragStartEvent,
 } from '@dnd-kit/core';
 import {
   arrayMove,
@@ -32,6 +34,7 @@ export function RankingList({ onScoresCalculated }: RankingListProps) {
   const [showAddMarker, setShowAddMarker] = useState(false);
   const [showAddFolder, setShowAddFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
+  const [dropTargetFolderId, setDropTargetFolderId] = useState<string | null>(null);
 
   const scoreFormat: ScoreFormat = user?.mediaListOptions?.scoreFormat || 'POINT_100';
 
@@ -70,35 +73,32 @@ export function RankingList({ onScoresCalculated }: RankingListProps) {
     return map;
   }, [state.items]);
 
-  // Filter items for rendering based on folder collapse state
+  // Filter items for rendering based on folder collapse state (using parentFolderId)
   const visibleItems = useMemo(() => {
-    const result: RankingListItem[] = [];
-    let skipUntilNext = false;
+    // Build set of collapsed folder IDs
+    const collapsedFolderIds = new Set(
+      state.items
+        .filter((i): i is RankingFolder => i.type === 'folder' && !i.isExpanded)
+        .map(f => f.id)
+    );
 
-    for (const item of state.items) {
-      if (item.type === 'folder') {
-        result.push(item);
-        skipUntilNext = !item.isExpanded;
-      } else if (item.type === 'marker') {
-        result.push(item);
-        skipUntilNext = false; // Markers end folder content
-      } else if (!skipUntilNext) {
-        result.push(item);
+    return state.items.filter(item => {
+      if (item.type === 'folder' || item.type === 'marker') return true;
+      if (item.type === 'anime') {
+        // Hide if parent folder is collapsed
+        return !item.parentFolderId || !collapsedFolderIds.has(item.parentFolderId);
       }
-    }
-    return result;
+      return true;
+    });
   }, [state.items]);
 
-  // Get IDs of items belonging to a folder (folder + its anime contents)
+  // Get IDs of items belonging to a folder (folder + anime with matching parentFolderId)
   function getFolderBlockIds(items: RankingListItem[], folderId: string): string[] {
-    const folderIndex = items.findIndex(i => i.id === folderId);
-    if (folderIndex === -1) return [folderId];
-
     const blockIds = [folderId];
-    for (let i = folderIndex + 1; i < items.length; i++) {
-      const item = items[i];
-      if (item.type === 'folder' || item.type === 'marker') break;
-      blockIds.push(item.id);
+    for (const item of items) {
+      if (item.type === 'anime' && item.parentFolderId === folderId) {
+        blockIds.push(item.id);
+      }
     }
     return blockIds;
   }
@@ -126,16 +126,44 @@ export function RankingList({ onScoresCalculated }: RankingListProps) {
     return remaining;
   }
 
+  function handleDragStart(_event: DragStartEvent) {
+    // Can be used for additional drag state if needed
+  }
+
+  function handleDragOver(event: DragOverEvent) {
+    const { active, over } = event;
+    if (!over) {
+      setDropTargetFolderId(null);
+      return;
+    }
+
+    const activeId = String(active.id);
+    const overId = String(over.id);
+    const activeItem = state.items.find(i => i.id === activeId);
+    const overItem = state.items.find(i => i.id === overId);
+
+    // Dragging anime over a folder = highlight folder as drop target
+    if (activeItem?.type === 'anime' && overItem?.type === 'folder') {
+      setDropTargetFolderId(overId);
+    } else {
+      setDropTargetFolderId(null);
+    }
+  }
+
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
+
+    // Clear drag state
+    setDropTargetFolderId(null);
 
     if (over && active.id !== over.id) {
       const activeId = String(active.id);
       const overId = String(over.id);
 
-      // Check if dragging a folder
       const activeItem = state.items.find(i => i.id === activeId);
+      const overItem = state.items.find(i => i.id === overId);
 
+      // Check if dragging a folder
       if (activeItem?.type === 'folder') {
         // Move folder and its contents as a block
         const blockIds = getFolderBlockIds(state.items, activeId);
@@ -147,8 +175,27 @@ export function RankingList({ onScoresCalculated }: RankingListProps) {
             items: moveItemsAsBlock(state.items, blockIds, targetIndex),
           });
         }
+      } else if (activeItem?.type === 'anime') {
+        // Check if dropping on a folder = add to folder
+        if (overItem?.type === 'folder') {
+          dispatch({ type: 'MOVE_TO_FOLDER', itemId: activeId, folderId: overId });
+        }
+        // Check if dropping on an anime outside any folder = remove from folder
+        else if (overItem?.type === 'anime' && !overItem.parentFolderId && activeItem.parentFolderId) {
+          dispatch({ type: 'REMOVE_FROM_FOLDER', itemId: activeId });
+        }
+        // Normal reorder
+        const oldIndex = indexMap.get(activeId);
+        const newIndex = indexMap.get(overId);
+
+        if (oldIndex !== undefined && newIndex !== undefined) {
+          dispatch({
+            type: 'SET_ITEMS',
+            items: arrayMove(state.items, oldIndex, newIndex),
+          });
+        }
       } else {
-        // Normal single-item move
+        // Marker or other item - normal move
         const oldIndex = indexMap.get(activeId);
         const newIndex = indexMap.get(overId);
 
@@ -191,18 +238,11 @@ export function RankingList({ onScoresCalculated }: RankingListProps) {
     setShowAddFolder(false);
   }
 
-  // Helper to count anime items belonging to a folder
+  // Helper to count anime items belonging to a folder (using parentFolderId)
   function getFolderItemCount(items: RankingListItem[], folderId: string): number {
-    const folderIndex = items.findIndex(i => i.id === folderId);
-    if (folderIndex === -1) return 0;
-
-    let count = 0;
-    for (let i = folderIndex + 1; i < items.length; i++) {
-      const item = items[i];
-      if (item.type === 'folder' || item.type === 'marker') break;
-      if (item.type === 'anime') count++;
-    }
-    return count;
+    return items.filter(
+      item => item.type === 'anime' && item.parentFolderId === folderId
+    ).length;
   }
 
   function handleAddMarker(preset: { value: number; label: string }) {
@@ -355,6 +395,8 @@ export function RankingList({ onScoresCalculated }: RankingListProps) {
         key={state.viewMode}
         sensors={sensors}
         collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
       >
         <SortableContext
@@ -377,6 +419,7 @@ export function RankingList({ onScoresCalculated }: RankingListProps) {
                 onToggleFolder={handleToggleFolder}
                 onRenameFolder={handleRenameFolder}
                 folderItemCount={item.type === 'folder' ? getFolderItemCount(state.items, item.id) : 0}
+                isDropTarget={item.type === 'folder' && item.id === dropTargetFolderId}
                 viewMode={state.viewMode}
               />
             ))}

@@ -19,6 +19,7 @@ interface SortableItemProps {
   onToggleFolder: (id: string) => void;
   onRenameFolder: (id: string, label: string) => void;
   folderItemCount: number;
+  isDropTarget?: boolean;
   viewMode: ViewMode;
 }
 
@@ -33,6 +34,7 @@ export const SortableItem = memo(function SortableItem({
   onToggleFolder,
   onRenameFolder,
   folderItemCount,
+  isDropTarget = false,
   viewMode,
 }: SortableItemProps) {
   const {
@@ -71,6 +73,7 @@ export const SortableItem = memo(function SortableItem({
           onRemove={() => onRemoveFolder(item.id)}
           onRename={(label) => onRenameFolder(item.id, label)}
           isDragging={isDragging}
+          isDropTarget={isDropTarget}
           viewMode={viewMode}
         />
       ) : (
@@ -86,7 +89,7 @@ export const SortableItem = memo(function SortableItem({
   );
 }, (prevProps, nextProps) => {
   // Custom comparison - only re-render if relevant props changed
-  // For folders, also check isExpanded and folderItemCount
+  // For folders, also check isExpanded, folderItemCount, and isDropTarget
   const baseEqual =
     prevProps.item.id === nextProps.item.id &&
     prevProps.rank === nextProps.rank &&
@@ -94,7 +97,8 @@ export const SortableItem = memo(function SortableItem({
     prevProps.scoreFormat === nextProps.scoreFormat &&
     prevProps.calculatedScore?.score === nextProps.calculatedScore?.score &&
     prevProps.viewMode === nextProps.viewMode &&
-    prevProps.folderItemCount === nextProps.folderItemCount;
+    prevProps.folderItemCount === nextProps.folderItemCount &&
+    prevProps.isDropTarget === nextProps.isDropTarget;
 
   if (!baseEqual) return false;
 

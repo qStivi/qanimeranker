@@ -50,6 +50,7 @@ export interface RankingItem {
   entryId: number;
   anime: AniListMedia;
   currentScore: number;
+  parentFolderId?: string;  // Which folder this anime belongs to (undefined = top level)
 }
 
 export interface RatingMarker {

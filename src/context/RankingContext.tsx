@@ -33,6 +33,8 @@ type RankingAction =
   | { type: 'REMOVE_FOLDER'; id: string }
   | { type: 'RENAME_FOLDER'; id: string; label: string }
   | { type: 'TOGGLE_FOLDER'; id: string }
+  | { type: 'MOVE_TO_FOLDER'; itemId: string; folderId: string }
+  | { type: 'REMOVE_FROM_FOLDER'; itemId: string }
   | { type: 'SET_TITLE_FORMAT'; format: TitleFormat }
   | { type: 'SET_VIEW_MODE'; mode: ViewMode }
   | { type: 'LOAD_FROM_ENTRIES'; entries: AniListMediaListEntry[] }
@@ -54,6 +56,9 @@ function saveToStorage(items: RankingListItem[]) {
     ...(item.type === 'folder' && {
       label: item.label,
       isExpanded: item.isExpanded,
+    }),
+    ...(item.type === 'anime' && item.parentFolderId && {
+      parentFolderId: item.parentFolderId,
     }),
   }));
   localStorage.setItem(STORAGE_KEY, JSON.stringify(orderData));
@@ -148,6 +153,26 @@ function rankingReducer(state: RankingState, action: RankingAction): RankingStat
       return { ...state, items: newItems };
     }
 
+    case 'MOVE_TO_FOLDER': {
+      const newItems = state.items.map(item =>
+        item.type === 'anime' && item.id === action.itemId
+          ? { ...item, parentFolderId: action.folderId }
+          : item
+      );
+      saveToStorage(newItems);
+      return { ...state, items: newItems };
+    }
+
+    case 'REMOVE_FROM_FOLDER': {
+      const newItems = state.items.map(item =>
+        item.type === 'anime' && item.id === action.itemId
+          ? { ...item, parentFolderId: undefined }
+          : item
+      );
+      saveToStorage(newItems);
+      return { ...state, items: newItems };
+    }
+
     case 'SET_TITLE_FORMAT': {
       saveTitleFormat(action.format);
       return { ...state, titleFormat: action.format };
@@ -171,6 +196,7 @@ function rankingReducer(state: RankingState, action: RankingAction): RankingStat
             minRating?: number;
             label?: string;
             isExpanded?: boolean;
+            parentFolderId?: string;
           }>;
 
           // Create a map of entries by mediaId
@@ -210,6 +236,7 @@ function rankingReducer(state: RankingState, action: RankingAction): RankingStat
                   entryId: entry.id,
                   anime: entry.media,
                   currentScore: entry.score,
+                  parentFolderId: orderItem.parentFolderId,
                 });
                 usedMediaIds.add(mediaId);
               }
