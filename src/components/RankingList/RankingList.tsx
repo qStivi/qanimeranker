@@ -153,14 +153,24 @@ export function RankingList({ onScoresCalculated }: RankingListProps) {
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
 
+    // Capture the drop target folder BEFORE clearing state
+    const targetFolderId = dropTargetFolderId;
+
     // Clear drag state
     setDropTargetFolderId(null);
 
-    if (over && active.id !== over.id) {
-      const activeId = String(active.id);
-      const overId = String(over.id);
+    const activeId = String(active.id);
+    const activeItem = state.items.find(i => i.id === activeId);
 
-      const activeItem = state.items.find(i => i.id === activeId);
+    // Priority 1: Check if we were hovering over a folder (use captured state)
+    // This handles the case where the folder moved out of the way
+    if (activeItem?.type === 'anime' && targetFolderId) {
+      dispatch({ type: 'MOVE_TO_FOLDER', itemId: activeId, folderId: targetFolderId });
+      return; // Don't also reorder
+    }
+
+    if (over && active.id !== over.id) {
+      const overId = String(over.id);
       const overItem = state.items.find(i => i.id === overId);
 
       // Check if dragging a folder
@@ -176,12 +186,13 @@ export function RankingList({ onScoresCalculated }: RankingListProps) {
           });
         }
       } else if (activeItem?.type === 'anime') {
-        // Check if dropping on a folder = add to folder
+        // Check if dropping on a folder = add to folder (backup check)
         if (overItem?.type === 'folder') {
           dispatch({ type: 'MOVE_TO_FOLDER', itemId: activeId, folderId: overId });
+          return;
         }
         // Check if dropping on an anime outside any folder = remove from folder
-        else if (overItem?.type === 'anime' && !overItem.parentFolderId && activeItem.parentFolderId) {
+        if (overItem?.type === 'anime' && !overItem.parentFolderId && activeItem.parentFolderId) {
           dispatch({ type: 'REMOVE_FROM_FOLDER', itemId: activeId });
         }
         // Normal reorder
