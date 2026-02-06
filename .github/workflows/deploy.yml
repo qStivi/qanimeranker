@@ -1,0 +1,59 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main, dev]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Install backend dependencies
+        run: cd server && npm ci
+
+      - name: Build frontend
+        run: npm run build
+        env:
+          VITE_ANILIST_CLIENT_ID: ${{ secrets.ANILIST_CLIENT_ID }}
+
+      - name: Build backend
+        run: cd server && npm run build
+
+      - name: Set deployment environment
+        id: env
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "DEPLOY_ENV=prod" >> $GITHUB_OUTPUT
+            echo "DEPLOY_PATH=/opt/anime-ranker-prod" >> $GITHUB_OUTPUT
+            echo "PM2_NAME=anime-ranker-prod" >> $GITHUB_OUTPUT
+          else
+            echo "DEPLOY_ENV=dev" >> $GITHUB_OUTPUT
+            echo "DEPLOY_PATH=/opt/anime-ranker-dev" >> $GITHUB_OUTPUT
+            echo "PM2_NAME=anime-ranker-dev" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd ${{ steps.env.outputs.DEPLOY_PATH }}
+            git fetch origin
+            git checkout ${{ github.ref_name }}
+            git pull origin ${{ github.ref_name }}
+            npm ci --production
+            cd server && npm ci --production && cd ..
+            pm2 restart ${{ steps.env.outputs.PM2_NAME }} || pm2 start ecosystem.config.js --only ${{ steps.env.outputs.PM2_NAME }}

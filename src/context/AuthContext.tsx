@@ -1,19 +1,13 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import type { AniListUser } from '../api/types';
-import {
-  getStoredToken,
-  clearStoredToken,
-  exchangeCodeForToken,
-  getCodeFromUrl,
-  isCallbackUrl,
-} from '../api/auth';
+import { getCurrentUser, logout as apiLogout, getOAuthError, clearOAuthError, type CurrentUser } from '../api/auth';
 import { getViewer } from '../api/anilist';
 
 interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   user: AniListUser | null;
-  token: string | null;
+  backendUser: CurrentUser | null;
   error: string | null;
   logout: () => void;
 }
@@ -21,7 +15,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [token, setToken] = useState<string | null>(null);
+  const [backendUser, setBackendUser] = useState<CurrentUser | null>(null);
   const [user, setUser] = useState<AniListUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -29,34 +23,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     async function initAuth() {
       try {
-        // Check if this is a callback from OAuth
-        if (isCallbackUrl()) {
-          const code = getCodeFromUrl();
-          if (code) {
-            const newToken = await exchangeCodeForToken(code);
-            setToken(newToken);
-            const userData = await getViewer(newToken);
-            setUser(userData);
-            // Clear the URL params
-            window.history.replaceState({}, '', '/');
-          }
-        } else {
-          // Check for existing token
-          const storedToken = getStoredToken();
-          if (storedToken) {
-            try {
-              const userData = await getViewer(storedToken);
-              setToken(storedToken);
-              setUser(userData);
-            } catch {
-              // Token is invalid, clear it
-              clearStoredToken();
-            }
+        // Check for OAuth errors in URL
+        const oauthError = getOAuthError();
+        if (oauthError) {
+          setError(`Authentication failed: ${oauthError}`);
+          clearOAuthError();
+          setIsLoading(false);
+          return;
+        }
+
+        // Check if user is authenticated via backend
+        const currentUser = await getCurrentUser();
+        if (currentUser) {
+          setBackendUser(currentUser);
+
+          // Fetch full AniList user data for media list access
+          try {
+            const anilistUser = await getViewer();
+            setUser(anilistUser);
+          } catch {
+            // AniList token might be expired, but we still have backend auth
+            console.warn('Failed to fetch AniList viewer, token may be expired');
           }
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Authentication failed');
-        clearStoredToken();
       } finally {
         setIsLoading(false);
       }
@@ -65,19 +56,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initAuth();
   }, []);
 
-  const logout = () => {
-    clearStoredToken();
-    setToken(null);
+  const logout = async () => {
+    await apiLogout();
+    setBackendUser(null);
     setUser(null);
   };
 
   return (
     <AuthContext.Provider
       value={{
-        isAuthenticated: !!token && !!user,
+        isAuthenticated: !!backendUser,
         isLoading,
         user,
-        token,
+        backendUser,
         error,
         logout,
       }}

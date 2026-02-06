@@ -9,7 +9,7 @@ import type { CalculatedScore, AniListMediaListEntry } from './api/types';
 import './App.css';
 
 function AppContent() {
-  const { isAuthenticated, isLoading: authLoading, user, token } = useAuth();
+  const { isAuthenticated, isLoading: authLoading, user } = useAuth();
   const { state, dispatch } = useRanking();
   const [loadingList, setLoadingList] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -19,13 +19,13 @@ function AppContent() {
 
   useEffect(() => {
     async function loadAnimeList() {
-      if (!isAuthenticated || !user || !token || state.isLoaded) return;
+      if (!isAuthenticated || !user || state.isLoaded) return;
 
       setLoadingList(true);
       setError(null);
 
       try {
-        const entries = await getCompletedAnimeList(user.id, token);
+        const entries = await getCompletedAnimeList(user.id);
         entriesRef.current = entries; // Store for reset functionality
         dispatch({ type: 'LOAD_FROM_ENTRIES', entries });
       } catch (err) {
@@ -36,14 +36,14 @@ function AppContent() {
     }
 
     loadAnimeList();
-  }, [isAuthenticated, user, token, state.isLoaded, dispatch]);
+  }, [isAuthenticated, user, state.isLoaded, dispatch]);
 
   const handleScoresCalculated = useCallback((scores: CalculatedScore[]) => {
     setCalculatedScores(scores);
   }, []);
 
   const handleResetFromAniList = useCallback(async () => {
-    if (!user || !token) return;
+    if (!user) return;
 
     const confirmed = window.confirm(
       'This will reset your ranking order to match your current AniList scores (sorted highest to lowest). All markers will be removed. Continue?'
@@ -53,7 +53,7 @@ function AppContent() {
     setResetting(true);
     try {
       // Fetch fresh data from AniList
-      const entries = await getCompletedAnimeList(user.id, token);
+      const entries = await getCompletedAnimeList(user.id);
       entriesRef.current = entries;
       dispatch({ type: 'RESET_FROM_ANILIST', entries });
     } catch (err) {
@@ -61,7 +61,7 @@ function AppContent() {
     } finally {
       setResetting(false);
     }
-  }, [user, token, dispatch]);
+  }, [user, dispatch]);
 
   if (authLoading) {
     return (

@@ -1,7 +1,8 @@
 import type { AniListMediaListEntry, AniListUser } from './types';
 
-// Use proxied endpoint to avoid CORS issues (proxy configured in vite.config.ts)
-const API_URL = '/api/graphql';
+// API base URL - in development, Vite proxies to backend; in production, same origin
+const API_BASE = import.meta.env.VITE_API_URL || '';
+const API_URL = `${API_BASE}/api/proxy/graphql`;
 
 class RateLimiter {
   private requestTimes: number[] = [];
@@ -57,23 +58,18 @@ const rateLimiter = new RateLimiter();
 
 async function graphqlRequest<T>(
   query: string,
-  variables: Record<string, unknown> = {},
-  token?: string
+  variables: Record<string, unknown> = {}
 ): Promise<T> {
   await rateLimiter.throttle();
 
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-  };
-
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-
+  // The backend handles auth via httpOnly cookies
   const response = await fetch(API_URL, {
     method: 'POST',
-    headers,
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    credentials: 'include',
     body: JSON.stringify({ query, variables }),
   });
 
@@ -83,7 +79,7 @@ async function graphqlRequest<T>(
     console.log(`429 Too Many Requests - waiting ${retryAfter}s (from Retry-After header)`);
     rateLimiter.setRateLimited(retryAfter);
     // Retry the request after waiting
-    return graphqlRequest(query, variables, token);
+    return graphqlRequest(query, variables);
   }
 
   if (!response.ok) {
@@ -99,7 +95,7 @@ async function graphqlRequest<T>(
   return data.data;
 }
 
-export async function getViewer(token: string): Promise<AniListUser> {
+export async function getViewer(): Promise<AniListUser> {
   const query = `
     query {
       Viewer {
@@ -115,13 +111,12 @@ export async function getViewer(token: string): Promise<AniListUser> {
     }
   `;
 
-  const data = await graphqlRequest<{ Viewer: AniListUser }>(query, {}, token);
+  const data = await graphqlRequest<{ Viewer: AniListUser }>(query);
   return data.Viewer;
 }
 
 export async function getCompletedAnimeList(
-  userId: number,
-  token: string
+  userId: number
 ): Promise<AniListMediaListEntry[]> {
   const query = `
     query ($userId: Int!) {
@@ -155,7 +150,7 @@ export async function getCompletedAnimeList(
     MediaListCollection: {
       lists: Array<{ name: string; entries: AniListMediaListEntry[] }>;
     };
-  }>(query, { userId }, token);
+  }>(query, { userId });
 
   // Only use the main "Completed" list, ignore custom lists to avoid duplicates
   const completedList = data.MediaListCollection.lists.find(
@@ -167,8 +162,7 @@ export async function getCompletedAnimeList(
 
 export async function updateAnimeScore(
   mediaId: number,
-  score: number,
-  token: string
+  score: number
 ): Promise<void> {
   // Use scoreRaw (Int) instead of score (Float) to set the raw 0-100 value
   // This works regardless of the user's score format setting (5-star, 10-point, etc.)
@@ -181,7 +175,7 @@ export async function updateAnimeScore(
     }
   `;
 
-  await graphqlRequest(query, { mediaId, scoreRaw: Math.round(score) }, token);
+  await graphqlRequest(query, { mediaId, scoreRaw: Math.round(score) });
 }
 
 // Batch size for grouped mutations (conservative to stay within rate limits)
@@ -233,7 +227,6 @@ export interface SyncProgress {
 
 export async function syncScoresToAniList(
   scores: Array<{ mediaId: number; score: number; title: string }>,
-  token: string,
   onProgress?: (progress: SyncProgress) => void
 ): Promise<{ success: number; failed: number; errors: string[] }> {
   let success = 0;
@@ -264,7 +257,7 @@ export async function syncScoresToAniList(
 
     try {
       const { query, variables } = buildBatchMutation(batch);
-      await graphqlRequest(query, variables, token);
+      await graphqlRequest(query, variables);
       success += batch.length;
       console.log(`Batch ${batchIdx + 1}/${batches.length} completed (${batch.length} items)`);
     } catch (error) {
@@ -278,7 +271,7 @@ export async function syncScoresToAniList(
         });
 
         try {
-          await updateAnimeScore(item.mediaId, item.score, token);
+          await updateAnimeScore(item.mediaId, item.score);
           success++;
         } catch (individualError) {
           failed++;

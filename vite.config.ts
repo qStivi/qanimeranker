@@ -6,15 +6,10 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/api/oauth/token': {
-        target: 'https://anilist.co/api/v2',
+      // Proxy all /api routes to the backend server
+      '/api': {
+        target: 'http://localhost:3000',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
-      },
-      '/api/graphql': {
-        target: 'https://graphql.anilist.co',
-        changeOrigin: true,
-        rewrite: () => '/',
       },
     },
   },

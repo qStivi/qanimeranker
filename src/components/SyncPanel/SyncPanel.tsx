@@ -9,13 +9,13 @@ interface SyncPanelProps {
 }
 
 export function SyncPanel({ scores }: SyncPanelProps) {
-  const { token } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [syncing, setSyncing] = useState(false);
   const [progress, setProgress] = useState<SyncProgress | null>(null);
   const [result, setResult] = useState<{ success: number; failed: number; errors: string[] } | null>(null);
 
   async function handleSync() {
-    if (!token || syncing) return;
+    if (!isAuthenticated || syncing) return;
 
     setSyncing(true);
     setResult(null);
@@ -24,7 +24,6 @@ export function SyncPanel({ scores }: SyncPanelProps) {
     try {
       const syncResult = await syncScoresToAniList(
         scores.map(s => ({ mediaId: s.mediaId, score: s.score, title: s.title })),
-        token,
         setProgress
       );
       setResult(syncResult);

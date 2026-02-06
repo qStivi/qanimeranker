@@ -1,66 +1,52 @@
-const AUTH_URL = 'https://anilist.co/api/v2/oauth/authorize';
-// Use proxied endpoint to avoid CORS issues (proxy configured in vite.config.ts)
-const TOKEN_URL = '/api/oauth/token';
+// API base URL - in development, use Vite proxy; in production, use same origin
+const API_BASE = import.meta.env.VITE_API_URL || '';
 
-const CLIENT_ID = import.meta.env.VITE_ANILIST_CLIENT_ID;
-const CLIENT_SECRET = import.meta.env.VITE_ANILIST_CLIENT_SECRET;
-const REDIRECT_URI = import.meta.env.VITE_ANILIST_REDIRECT_URI;
-
-const TOKEN_KEY = 'anilist_access_token';
-
-export function getStoredToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY);
+export interface CurrentUser {
+  id: number;
+  anilistId: number;
+  username: string;
+  avatarUrl: string | null;
 }
 
-export function setStoredToken(token: string): void {
-  localStorage.setItem(TOKEN_KEY, token);
-}
+// Check if user is authenticated by calling backend
+export async function getCurrentUser(): Promise<CurrentUser | null> {
+  try {
+    const response = await fetch(`${API_BASE}/api/auth/me`, {
+      credentials: 'include',
+    });
 
-export function clearStoredToken(): void {
-  localStorage.removeItem(TOKEN_KEY);
-}
+    if (!response.ok) {
+      return null;
+    }
 
-export function initiateLogin(): void {
-  const params = new URLSearchParams({
-    client_id: CLIENT_ID,
-    redirect_uri: REDIRECT_URI,
-    response_type: 'code',
-  });
-  window.location.href = `${AUTH_URL}?${params}`;
-}
-
-export async function exchangeCodeForToken(code: string): Promise<string> {
-  const response = await fetch(TOKEN_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    },
-    body: JSON.stringify({
-      grant_type: 'authorization_code',
-      client_id: CLIENT_ID,
-      client_secret: CLIENT_SECRET,
-      redirect_uri: REDIRECT_URI,
-      code,
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Token exchange failed: ${errorText}`);
+    return await response.json();
+  } catch {
+    return null;
   }
-
-  const data = await response.json();
-  const token = data.access_token;
-  setStoredToken(token);
-  return token;
 }
 
-export function getCodeFromUrl(): string | null {
+// Initiate login - redirects to backend OAuth flow
+export function initiateLogin(): void {
+  window.location.href = `${API_BASE}/api/auth/login`;
+}
+
+// Logout - clear session
+export async function logout(): Promise<void> {
+  await fetch(`${API_BASE}/api/auth/logout`, {
+    method: 'POST',
+    credentials: 'include',
+  });
+}
+
+// Check for OAuth callback errors in URL
+export function getOAuthError(): string | null {
   const params = new URLSearchParams(window.location.search);
-  return params.get('code');
+  return params.get('error');
 }
 
-export function isCallbackUrl(): boolean {
-  return window.location.pathname === '/callback';
+// Clear error from URL
+export function clearOAuthError(): void {
+  if (getOAuthError()) {
+    window.history.replaceState({}, '', window.location.pathname);
+  }
 }
