@@ -70,7 +70,8 @@ if (config.nodeEnv === 'production') {
   app.use(express.static(staticPath));
 
   // SPA fallback - serve index.html for all non-API routes
-  app.get('*', (_req, res) => {
+  // Express 5 requires named parameters, use {*path} instead of *
+  app.get('/{*path}', (_req, res) => {
     res.sendFile(path.join(staticPath, 'index.html'));
   });
 }
