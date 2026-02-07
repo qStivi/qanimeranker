@@ -56,4 +56,4 @@ jobs:
             git pull origin ${{ github.ref_name }}
             npm ci --production
             cd server && npm ci --production && cd ..
-            pm2 restart ${{ steps.env.outputs.PM2_NAME }} || pm2 start ecosystem.config.js --only ${{ steps.env.outputs.PM2_NAME }}
+            pm2 restart ${{ steps.env.outputs.PM2_NAME }} || pm2 start ecosystem.config.cjs --only ${{ steps.env.outputs.PM2_NAME }}
