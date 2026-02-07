@@ -22,14 +22,18 @@ router.post('/graphql', optionalAuthMiddleware, async (req: AuthenticatedRequest
     };
 
     // If user is authenticated, add their AniList token for user-specific queries
-    if (req.user) {
-      const users = await query<User[]>(
-        'SELECT access_token FROM users WHERE id = ?',
-        [req.user.userId]
-      );
+    if (req.user && typeof req.user.userId === 'number') {
+      // Validate userId is a positive integer (defense in depth for SQL injection)
+      const userId = Math.floor(Math.abs(req.user.userId));
+      if (userId > 0 && Number.isFinite(userId)) {
+        const users = await query<User[]>(
+          'SELECT access_token FROM users WHERE id = ?',
+          [userId]
+        );
 
-      if (users.length > 0 && users[0].access_token) {
-        headers['Authorization'] = `Bearer ${users[0].access_token}`;
+        if (users.length > 0 && users[0].access_token) {
+          headers['Authorization'] = `Bearer ${users[0].access_token}`;
+        }
       }
     }
 

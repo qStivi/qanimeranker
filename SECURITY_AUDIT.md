@@ -1,14 +1,14 @@
 # Security Audit Report - qanimeranker
 
-**Date:** February 7, 2026
+**Date:** February 7, 2026 (Updated)
 **Auditor:** Claude
-**Version:** 1.0.0
+**Version:** 1.1.0
 
 ---
 
 ## Executive Summary
 
-The codebase has a solid security foundation with proper OAuth implementation, parameterized queries, and httpOnly cookies. However, there are several areas that need improvement, primarily around security headers, rate limiting, and input validation.
+The codebase has a solid security foundation with proper OAuth implementation, parameterized queries, and httpOnly cookies. All HIGH priority issues from the initial audit have been resolved.
 
 ---
 
@@ -20,53 +20,31 @@ No critical vulnerabilities identified. The core security architecture is sound.
 
 ---
 
-### 🟠 HIGH Priority
+### 🟠 HIGH Priority - ALL RESOLVED ✅
 
-#### H1: Missing Security Headers
+#### H1: Missing Security Headers ✅ FIXED
 **File:** `server/src/index.ts`
 **Issue:** No security headers (HSTS, X-Content-Type-Options, X-Frame-Options, CSP)
-**Risk:** XSS, clickjacking, MIME-type sniffing attacks
-**Fix:** Add helmet.js middleware
+**Status:** ✅ Fixed - helmet.js added with custom CSP configuration
 
-```typescript
-import helmet from 'helmet';
-app.use(helmet());
-```
-
-#### H2: No Rate Limiting
+#### H2: No Rate Limiting ✅ FIXED
 **File:** `server/src/index.ts`
 **Issue:** API endpoints have no rate limiting
-**Risk:** Brute force attacks, DoS, API abuse
-**Fix:** Add express-rate-limit
+**Status:** ✅ Fixed - Multiple rate limiters added:
+- `apiLimiter`: 100 req/15min for API routes
+- `authLimiter`: 10 req/15min for login
+- `healthLimiter`: 60 req/min for health checks
+- `staticLimiter`: 300 req/min for static assets/SPA fallback
 
-```typescript
-import rateLimit from 'express-rate-limit';
-
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100,
-  message: { error: 'Too many requests, please try again later' }
-});
-
-app.use('/api/', limiter);
-
-// Stricter limit for auth endpoints
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 10,
-});
-app.use('/api/auth/login', authLimiter);
-```
-
-#### H3: No Request Body Size Limit
+#### H3: No Request Body Size Limit ✅ FIXED
 **File:** `server/src/index.ts`
 **Issue:** `express.json()` has no size limit
-**Risk:** Large payload DoS attacks
-**Fix:**
+**Status:** ✅ Fixed - Body limit set to 1MB
 
-```typescript
-app.use(express.json({ limit: '1mb' }));
-```
+#### H4: Missing CSRF Protection ✅ FIXED
+**File:** `server/src/index.ts`
+**Issue:** No CSRF token validation for state-changing requests
+**Status:** ✅ Fixed - Origin/Referer header validation added as defense-in-depth alongside SameSite cookies
 
 ---
 
@@ -147,19 +125,21 @@ const RankingSchema = z.object({
 
 ## Recommended Actions
 
-### Immediate (This Session)
-1. [ ] Install and configure helmet.js
-2. [ ] Add express-rate-limit
-3. [ ] Add body size limit to express.json()
+### Completed ✅
+1. [x] Install and configure helmet.js
+2. [x] Add express-rate-limit
+3. [x] Add body size limit to express.json()
+4. [x] Add CSRF protection via Origin validation
+5. [x] Add input validation to optionalAuthMiddleware
+6. [x] Add defense-in-depth for SQL injection prevention
 
 ### Soon (Next Week)
-4. [ ] Add Zod validation for ranking data
-5. [ ] Consider GraphQL query complexity limits
+7. [ ] Add Zod validation for ranking data
+8. [ ] Consider GraphQL query complexity limits
 
 ### Future (At Scale)
-6. [ ] Migrate state tokens to Redis
-7. [ ] Add comprehensive CSP policy
-8. [ ] Set up security monitoring/alerting
+9. [ ] Migrate state tokens to Redis
+10. [ ] Set up security monitoring/alerting
 
 ---
 
@@ -177,6 +157,6 @@ Run this regularly. Dependabot is configured to auto-update patch versions.
 
 The application has a **solid security foundation**. The main gaps are missing security headers and rate limiting, which are straightforward to add. No critical vulnerabilities were found.
 
-**Overall Security Grade: B+**
+**Overall Security Grade: A-**
 
-After implementing the HIGH priority fixes, the grade would be **A-**.
+All HIGH priority issues have been addressed. Remaining items are optional hardening for scale.
