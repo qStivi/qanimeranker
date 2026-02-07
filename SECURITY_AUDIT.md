@@ -63,24 +63,10 @@ No critical vulnerabilities identified. The core security architecture is sound.
 **Risk:** Nested query attacks could cause high AniList API usage
 **Recommended:** Add query complexity analysis or whitelist allowed queries
 
-#### M3: Ranking Data Not Validated
-**File:** `server/src/routes/rankings.ts` (line 34)
-**Issue:** `data` from request body is saved without schema validation
-**Risk:** Malformed data could cause frontend issues
-**Recommended:** Add Zod or Joi schema validation
-
-```typescript
-import { z } from 'zod';
-
-const RankingSchema = z.object({
-  ranking_order: z.array(z.number()),
-  folders: z.array(z.object({
-    id: z.string(),
-    name: z.string(),
-    items: z.array(z.number())
-  })).optional()
-});
-```
+#### M3: Ranking Data Not Validated ✅ FIXED
+**File:** `server/src/routes/rankings.ts`
+**Issue:** `data` from request body was saved without schema validation
+**Status:** ✅ Fixed - Zod validation added with discriminated union schema for anime/marker/folder types
 
 #### M4: Error Messages Could Leak Info
 **Files:** Various route files
@@ -136,6 +122,8 @@ const RankingSchema = z.object({
 8. [x] CodeQL security scanning (weekly + on push)
 9. [x] Dependabot for dependency updates (weekly)
 10. [x] Dependabot auto-merge for patch/minor updates
+11. [x] Add Zod validation for ranking data
+12. [x] Install fail2ban on all servers (SSH brute-force protection)
 
 ### CodeQL Alerts - Reviewed & Dismissed
 The following alerts were reviewed and dismissed as false positives or intentional design:
@@ -143,13 +131,10 @@ The following alerts were reviewed and dismissed as false positives or intention
 - **js/user-controlled-bypass** - `optionalAuthMiddleware` intentionally allows unauthenticated access for public routes
 - **js/sql-injection** - False positive; using parameterized queries with mysql2
 
-### Soon (Next Week)
-11. [ ] Add Zod validation for ranking data
-12. [ ] Consider GraphQL query complexity limits
-
 ### Future (At Scale)
-13. [ ] Migrate state tokens to Redis
-14. [ ] Set up security monitoring/alerting
+13. [ ] Consider GraphQL query complexity limits
+14. [ ] Migrate state tokens to Redis
+15. [ ] Set up security monitoring/alerting (Grafana)
 
 ---
 
@@ -164,6 +149,7 @@ The following alerts were reviewed and dismissed as false positives or intention
 | SSH access | ✅ Key-only | Password auth disabled |
 | Firewall | ✅ Proxmox | Only required ports exposed |
 | Cloudflare Tunnel | ✅ Configured | Secure CI/CD access without port forwarding |
+| Fail2ban | ✅ Enabled | Blocks IPs after 3 failed SSH attempts (24h ban) |
 
 ### Auto-Update Configuration
 
