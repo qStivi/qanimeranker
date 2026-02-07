@@ -1,73 +1,168 @@
-# React + TypeScript + Vite
+<p align="center">
+  <img src="https://anilist.co/img/icons/android-chrome-512x512.png" alt="AniList Logo" width="120" />
+</p>
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+<h1 align="center">qAnimeRanker</h1>
 
-Currently, two official plugins are available:
+<p align="center">
+  <strong>✨ A vibe coding project ✨</strong>
+</p>
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+<p align="center">
+  Drag-and-drop anime ranking tool that syncs with your AniList account
+</p>
 
-## React Compiler
+<p align="center">
+  <a href="https://qanimeranker.qstivi.com">🌐 Live Demo</a> •
+  <a href="#features">✨ Features</a> •
+  <a href="#tech-stack">🛠️ Tech Stack</a> •
+  <a href="#getting-started">🚀 Getting Started</a>
+</p>
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+<p align="center">
+  <img src="https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react" alt="React 19" />
+  <img src="https://img.shields.io/badge/TypeScript-5.9-3178C6?style=flat-square&logo=typescript" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/Express-5-000000?style=flat-square&logo=express" alt="Express 5" />
+  <img src="https://img.shields.io/badge/Vite-7-646CFF?style=flat-square&logo=vite" alt="Vite 7" />
+</p>
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## 🎯 What is this?
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+**qAnimeRanker** is a personal project born from the desire to rank my completed anime in a more visual and intuitive way than AniList's default scoring system allows.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+> *"Sometimes you just want to drag your favorite anime above another one and call it a day."*
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+This is a **vibe coding project** — built for fun, learning, and scratching my own itch. It's not meant to be a polished product, but rather a playground for experimenting with modern web technologies while solving a real problem I had.
+
+## ✨ Features
+
+- 🔐 **AniList OAuth Integration** — Log in with your AniList account
+- 📋 **Drag & Drop Ranking** — Intuitive ranking with smooth animations
+- 📁 **Folder Organization** — Group your anime into custom folders (iOS-style)
+- 🔄 **Cloud Sync** — Your rankings persist across devices
+- 📤 **Export/Import** — Backup your rankings as JSON
+- 🎨 **Grid & List Views** — Toggle between viewing modes
+- 🌙 **Markers** — Add visual markers to separate tiers
+
+## 🛠️ Tech Stack
+
+### Frontend
+- **React 19** with TypeScript
+- **Vite 7** for blazing fast builds
+- **@dnd-kit** for drag and drop
+- Custom CSS (no framework, just vibes)
+
+### Backend
+- **Express 5** (Node.js 20)
+- **MariaDB** for persistent storage
+- **JWT** in httpOnly cookies
+- **helmet.js** + rate limiting for security
+
+### Infrastructure
+- **Proxmox LXC** containers
+- **Nginx Proxy Manager** for reverse proxy
+- **Cloudflare** for DNS & SSL
+- **GitHub Actions** for CI/CD
+- **Cloudflare Tunnel** for secure deployments
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Node.js 20+
+- MariaDB (or MySQL)
+- An [AniList Developer App](https://anilist.co/settings/developer)
+
+### Local Development
+
+1. **Clone the repo**
+   ```bash
+   git clone https://github.com/qStivi/qanimeranker.git
+   cd qanimeranker
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   cd server && npm install && cd ..
+   ```
+
+3. **Set up environment variables**
+   ```bash
+   cp server/.env.example server/.env
+   # Edit server/.env with your credentials
+   ```
+
+4. **Start the development servers**
+   ```bash
+   # Terminal 1: Backend
+   cd server && npm run dev
+
+   # Terminal 2: Frontend
+   npm run dev
+   ```
+
+5. **Open** [http://localhost:5173](http://localhost:5173)
+
+### Environment Variables
+
+```env
+# AniList OAuth
+ANILIST_CLIENT_ID=your_client_id
+ANILIST_CLIENT_SECRET=your_client_secret
+ANILIST_REDIRECT_URI=http://localhost:3000/api/auth/callback
+
+# Database
+DATABASE_HOST=localhost
+DATABASE_PORT=3306
+DATABASE_USER=anime_ranker
+DATABASE_PASSWORD=your_password
+DATABASE_NAME=anime_ranker
+
+# Server
+PORT=3000
+NODE_ENV=development
+SESSION_SECRET=your_random_secret
+FRONTEND_URL=http://localhost:5173
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## 📝 AniList Terms Compliance
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+This project complies with the [AniList API Terms of Use](https://docs.anilist.co/guide/terms-of-use):
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+- ✅ Only stores user IDs, folder structure, and ranking order (no anime metadata)
+- ✅ Fetches anime data fresh each session
+- ✅ Respects rate limits (90 req/min)
+- ✅ Non-commercial use
+- ✅ Not a competing service
+
+## 🔒 Security
+
+- OAuth secrets kept server-side only
+- JWT stored in httpOnly cookies
+- Rate limiting on all API endpoints
+- Security headers via helmet.js
+- SQL injection prevention with parameterized queries
+- CodeQL and Dependabot for vulnerability scanning
+
+See [SECURITY.md](SECURITY.md) for our security policy.
+
+## 🤝 Contributing
+
+This is a personal vibe project, but if you find a bug or have a cool idea, feel free to open an issue or PR!
+
+## 📜 License
+
+This project is open source and available under the [MIT License](LICENSE).
+
+---
+
+<p align="center">
+  Made with ☕ and good vibes by <a href="https://github.com/qStivi">qStivi</a>
+</p>
+
+<p align="center">
+  <sub>🤖 Vibe-coded with Claude</sub>
+</p>
