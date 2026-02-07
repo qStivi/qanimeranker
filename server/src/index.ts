@@ -10,6 +10,7 @@ import authRoutes from './routes/auth.js';
 import rankingsRoutes from './routes/rankings.js';
 import proxyRoutes from './routes/proxy.js';
 import healthRoutes from './routes/health.js';
+import lusca from 'lusca';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -71,9 +72,11 @@ app.use(express.json({ limit: '1mb' })); // Limit request body size
 // lgtm[js/missing-token-validation] - CSRF protection via Origin header validation below
 // codeql[js/missing-token-validation] - JWT tokens validated in authMiddleware, SameSite cookies used
 app.use(cookieParser());
+// CSRF protection via lusca (token-based)
+app.use(lusca.csrf());
 
 // CSRF protection via Origin/Referer header validation for state-changing requests
-// This is defense-in-depth alongside SameSite cookies
+// This is defense-in-depth alongside SameSite cookies and lusca CSRF tokens
 app.use((req, res, next) => {
   // Only check state-changing methods
   if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) {
