@@ -14,6 +14,7 @@
 
 <p align="center">
   <a href="https://qanimeranker.qstivi.com">🌐 Live Demo</a> •
+  <a href="https://qanimeranker-dev.qstivi.com">🧪 Dev</a> •
   <a href="#features">✨ Features</a> •
   <a href="#tech-stack">🛠️ Tech Stack</a> •
   <a href="#getting-started">🚀 Getting Started</a>
@@ -66,6 +67,8 @@ This is a **vibe coding project** — built for fun, learning, and scratching my
 - **Cloudflare** for DNS & SSL
 - **GitHub Actions** for CI/CD
 - **Cloudflare Tunnel** for secure deployments
+- **Fail2ban** for SSH brute-force protection
+- **Unattended upgrades** for automatic security patches
 
 ## 🚀 Getting Started
 
@@ -144,10 +147,14 @@ This project complies with the [AniList API Terms of Use](https://docs.anilist.c
 - JWT stored in httpOnly cookies
 - Rate limiting on all API endpoints
 - Security headers via helmet.js
+- CSRF protection via Origin validation
+- Zod input validation
 - SQL injection prevention with parameterized queries
 - CodeQL and Dependabot for vulnerability scanning
+- Fail2ban SSH protection
+- Automatic security updates
 
-See [SECURITY.md](SECURITY.md) for our security policy.
+See [SECURITY.md](SECURITY.md) for our security policy and [SECURITY_AUDIT.md](SECURITY_AUDIT.md) for the full audit report.
 
 ## 🤝 Contributing
 
