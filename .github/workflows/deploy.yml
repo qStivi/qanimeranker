@@ -43,13 +43,33 @@ jobs:
             echo "PM2_NAME=anime-ranker-dev" >> $GITHUB_OUTPUT
           fi
 
+      - name: Install cloudflared
+        run: |
+          curl -L --output cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+          sudo dpkg -i cloudflared.deb
+
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+      - name: Configure SSH for Cloudflare Access
+        run: |
+          cat >> ~/.ssh/config << EOF
+          Host deploy-qanimeranker.qstivi.com
+            ProxyCommand cloudflared access ssh --hostname %h
+            User ${{ secrets.SERVER_USER }}
+            IdentityFile ~/.ssh/id_ed25519
+            StrictHostKeyChecking no
+          EOF
+
       - name: Deploy to server
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
+        env:
+          CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+        run: |
+          ssh deploy-qanimeranker.qstivi.com << 'ENDSSH'
             cd ${{ steps.env.outputs.DEPLOY_PATH }}
             git fetch origin
             git checkout ${{ github.ref_name }}
@@ -57,3 +77,4 @@ jobs:
             npm ci --production
             cd server && npm ci --production && cd ..
             pm2 restart ${{ steps.env.outputs.PM2_NAME }} || pm2 start ecosystem.config.cjs --only ${{ steps.env.outputs.PM2_NAME }}
+          ENDSSH
