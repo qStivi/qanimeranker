@@ -36,6 +36,8 @@ export function optionalAuthMiddleware(req: AuthenticatedRequest, _res: Response
   // Explicitly clear any existing user state
   req.user = undefined;
 
+  // lgtm[js/user-controlled-bypass] - Intentional: this middleware allows optional authentication
+  // codeql[js/user-controlled-bypass] - Routes using this MUST handle undefined req.user safely
   if (token && typeof token === 'string' && token.length > 0) {
     try {
       const decoded = jwt.verify(token, config.jwt.secret) as JWTPayload;
