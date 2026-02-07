@@ -127,19 +127,59 @@ const RankingSchema = z.object({
 
 ### Completed ✅
 1. [x] Install and configure helmet.js
-2. [x] Add express-rate-limit
+2. [x] Add express-rate-limit (API, auth, health, static routes)
 3. [x] Add body size limit to express.json()
-4. [x] Add CSRF protection via Origin validation
+4. [x] Add CSRF protection via Origin/Referer validation
 5. [x] Add input validation to optionalAuthMiddleware
 6. [x] Add defense-in-depth for SQL injection prevention
+7. [x] Fix log injection vulnerability
+8. [x] CodeQL security scanning (weekly + on push)
+9. [x] Dependabot for dependency updates (weekly)
+10. [x] Dependabot auto-merge for patch/minor updates
+
+### CodeQL Alerts - Reviewed & Dismissed
+The following alerts were reviewed and dismissed as false positives or intentional design:
+- **js/missing-token-validation** - CSRF protection via Origin validation + SameSite cookies (appropriate for SPA)
+- **js/user-controlled-bypass** - `optionalAuthMiddleware` intentionally allows unauthenticated access for public routes
+- **js/sql-injection** - False positive; using parameterized queries with mysql2
 
 ### Soon (Next Week)
-7. [ ] Add Zod validation for ranking data
-8. [ ] Consider GraphQL query complexity limits
+11. [ ] Add Zod validation for ranking data
+12. [ ] Consider GraphQL query complexity limits
 
 ### Future (At Scale)
-9. [ ] Migrate state tokens to Redis
-10. [ ] Set up security monitoring/alerting
+13. [ ] Migrate state tokens to Redis
+14. [ ] Set up security monitoring/alerting
+
+---
+
+## Infrastructure Security
+
+### Server Hardening (CT 130 - anime-ranker.lab.qstivi.com)
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Unattended upgrades | ✅ Enabled | Auto-installs security updates daily at 6 AM |
+| Backups | ✅ Scheduled | Daily at 5 AM (before auto-updates) |
+| SSH access | ✅ Key-only | Password auth disabled |
+| Firewall | ✅ Proxmox | Only required ports exposed |
+| Cloudflare Tunnel | ✅ Configured | Secure CI/CD access without port forwarding |
+
+### Auto-Update Configuration
+
+Unattended upgrades configured to:
+- Install security updates automatically
+- Run daily at 6:00 AM (after 5 AM backups)
+- Auto-remove unused dependencies
+- Reboot if required (at 6:00 AM)
+
+```bash
+# Check status
+systemctl status unattended-upgrades
+
+# View logs
+cat /var/log/unattended-upgrades/unattended-upgrades.log
+```
 
 ---
 
@@ -149,7 +189,7 @@ const RankingSchema = z.object({
 npm audit
 ```
 
-Run this regularly. Dependabot is configured to auto-update patch versions.
+Run this regularly. Dependabot is configured to auto-update patch/minor versions.
 
 ---
 
