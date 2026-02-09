@@ -164,9 +164,41 @@ function Datenschutz() {
         <li>Durch Logout wird die AniList-Verbindung getrennt</li>
       </ul>
 
-      <h3>4. Hosting</h3>
+      <h3>4. Hosting und CDN</h3>
+
+      <h4>Cloudflare</h4>
       <p>
-        Diese Website wird gehostet bei einem privaten Server. Es werden Server-Logs
+        Diese Website nutzt Cloudflare als Content Delivery Network (CDN) und Sicherheitsdienst.
+        Cloudflare ist ein US-amerikanisches Unternehmen, das unter dem EU-US Data Privacy
+        Framework zertifiziert ist.
+      </p>
+      <p>
+        Bei jedem Zugriff auf diese Website werden folgende Daten an Cloudflare übermittelt:
+      </p>
+      <ul>
+        <li>Ihre IP-Adresse</li>
+        <li>Aufgerufene URL</li>
+        <li>Datum und Uhrzeit des Zugriffs</li>
+        <li>Übertragene Datenmenge</li>
+        <li>Browser-Typ und -Version</li>
+        <li>Betriebssystem</li>
+      </ul>
+      <p>
+        Diese Daten werden von Cloudflare verarbeitet, um die Website vor Angriffen zu
+        schützen und die Auslieferung zu optimieren. Die Verarbeitung erfolgt auf Grundlage
+        unseres berechtigten Interesses an einer sicheren und effizienten Bereitstellung
+        unserer Website (Art. 6 Abs. 1 lit. f DSGVO).
+      </p>
+      <p>
+        Weitere Informationen finden Sie in der Datenschutzerklärung von Cloudflare:{' '}
+        <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener noreferrer">
+          https://www.cloudflare.com/privacypolicy/
+        </a>
+      </p>
+
+      <h4>Server</h4>
+      <p>
+        Die Website wird auf einem privaten Server gehostet. Es werden Server-Logs
         gespeichert, die IP-Adressen, Zeitstempel und aufgerufene URLs enthalten können.
         Diese Logs dienen ausschließlich der Fehleranalyse und Sicherheit und werden
         regelmäßig gelöscht.
