@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { RankingProvider, useRanking } from './context/RankingContext';
 import { Header } from './components/Header';
+import { Footer } from './components/Footer';
 import { RankingList } from './components/RankingList';
 import { SyncPanel } from './components/SyncPanel';
 import { getCompletedAnimeList } from './api/anilist';
@@ -118,6 +119,7 @@ function AppContent() {
           </div>
         )}
       </main>
+      <Footer />
     </div>
   );
 }
