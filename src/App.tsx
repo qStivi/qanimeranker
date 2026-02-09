@@ -6,6 +6,7 @@ import { Footer } from './components/Footer';
 import { RankingList } from './components/RankingList';
 import { SyncPanel } from './components/SyncPanel';
 import { getCompletedAnimeList } from './api/anilist';
+import { fetchRankings } from './api/rankings';
 import type { CalculatedScore, AniListMediaListEntry } from './api/types';
 import './App.css';
 
@@ -26,9 +27,16 @@ function AppContent() {
       setError(null);
 
       try {
-        const entries = await getCompletedAnimeList(user.id);
+        // Fetch both AniList entries and server rankings in parallel
+        const [entries, serverData] = await Promise.all([
+          getCompletedAnimeList(user.id),
+          fetchRankings(),
+        ]);
+
         entriesRef.current = entries; // Store for reset functionality
-        dispatch({ type: 'LOAD_FROM_ENTRIES', entries });
+
+        // Pass server data to the reducer (will be used if available)
+        dispatch({ type: 'LOAD_FROM_ENTRIES', entries, serverData });
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load anime list');
       } finally {
@@ -124,12 +132,22 @@ function AppContent() {
   );
 }
 
+// Wrapper to provide isAuthenticated to RankingProvider
+function RankingProviderWrapper({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated } = useAuth();
+  return (
+    <RankingProvider isAuthenticated={isAuthenticated}>
+      {children}
+    </RankingProvider>
+  );
+}
+
 function App() {
   return (
     <AuthProvider>
-      <RankingProvider>
+      <RankingProviderWrapper>
         <AppContent />
-      </RankingProvider>
+      </RankingProviderWrapper>
     </AuthProvider>
   );
 }
