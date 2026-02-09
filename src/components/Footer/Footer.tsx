@@ -155,14 +155,17 @@ function Datenschutz() {
       <h3>3. Ihre Rechte</h3>
       <p>
         Sie haben jederzeit das Recht auf unentgeltliche Auskunft über Ihre gespeicherten
-        personenbezogenen Daten. Da alle Ranking-Daten lokal in Ihrem Browser gespeichert
-        werden, können Sie diese jederzeit selbst einsehen, exportieren oder löschen:
+        personenbezogenen Daten, deren Berichtigung, Löschung oder Einschränkung der
+        Verarbeitung. Lokale Daten können Sie selbst verwalten:
       </p>
       <ul>
-        <li>Über die Export-Funktion können Sie Ihre Daten als JSON-Datei herunterladen</li>
         <li>Durch Löschen der Browser-Daten werden alle lokalen Daten entfernt</li>
         <li>Durch Logout wird die AniList-Verbindung getrennt</li>
       </ul>
+      <p>
+        Für Auskunft über serverseitig gespeicherte Daten oder deren Löschung wenden
+        Sie sich bitte per E-Mail an: stephanglaue@outlook.com
+      </p>
 
       <h3>4. Hosting und CDN</h3>
 
@@ -201,7 +204,7 @@ function Datenschutz() {
         Die Website wird auf einem privaten Server gehostet. Es werden Server-Logs
         gespeichert, die IP-Adressen, Zeitstempel und aufgerufene URLs enthalten können.
         Diese Logs dienen ausschließlich der Fehleranalyse und Sicherheit und werden
-        regelmäßig gelöscht.
+        nach 7 Tagen automatisch gelöscht.
       </p>
     </div>
   );
