@@ -17,6 +17,11 @@ updates:
         dependency-type: "production"
         update-types:
           - "patch"
+    ignore:
+      # eslint v10 not supported by eslint-plugin-react-hooks yet
+      # See: https://github.com/facebook/react/issues/28313
+      - dependency-name: "eslint"
+        versions: [">=10.0.0"]
 
   # Backend dependencies
   - package-ecosystem: "npm"
