@@ -13,9 +13,21 @@ export function authMiddleware(req: AuthenticatedRequest, res: Response, next: N
 
   try {
     const decoded = jwt.verify(token, config.jwt.secret) as JWTPayload;
+
+    // Validate payload structure to prevent malformed tokens
+    if (
+      !decoded ||
+      typeof decoded.userId !== 'number' ||
+      typeof decoded.anilistId !== 'number' ||
+      typeof decoded.username !== 'string'
+    ) {
+      res.status(401).json({ error: 'Invalid token payload' });
+      return;
+    }
+
     req.user = decoded;
     next();
-  } catch (error) {
+  } catch {
     res.status(401).json({ error: 'Invalid or expired token' });
   }
 }
