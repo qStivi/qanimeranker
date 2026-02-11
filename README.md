@@ -60,6 +60,7 @@ This is a **vibe coding project** — built for fun, learning, and scratching my
 - **MariaDB** for persistent storage
 - **JWT** in httpOnly cookies
 - **helmet.js** + rate limiting for security
+- **prom-client** for Prometheus metrics
 
 ### Infrastructure
 - **Proxmox LXC** containers
@@ -69,6 +70,7 @@ This is a **vibe coding project** — built for fun, learning, and scratching my
 - **Cloudflare Tunnel** for secure deployments
 - **Fail2ban** for SSH brute-force protection
 - **Unattended upgrades** for automatic security patches
+- **Prometheus + Grafana** for monitoring & alerting
 
 ## 🚀 Getting Started
 
@@ -155,6 +157,14 @@ This project complies with the [AniList API Terms of Use](https://docs.anilist.c
 - Automatic security updates
 
 See [SECURITY.md](SECURITY.md) for our security policy and [SECURITY_AUDIT.md](SECURITY_AUDIT.md) for the full audit report.
+
+## 📊 Monitoring
+
+- `/metrics` endpoint exposes Prometheus metrics
+- HTTP request rate, duration, and error tracking
+- Node.js heap, event loop, and GC metrics
+- Grafana dashboards for visualization
+- Discord alerts for critical issues (downtime, high error rates)
 
 ## 🤝 Contributing
 
