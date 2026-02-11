@@ -1,8 +1,8 @@
 # Security Audit Report - qanimeranker
 
-**Date:** February 7, 2026 (Updated)
+**Date:** February 11, 2026 (Updated)
 **Auditor:** Claude
-**Version:** 1.1.0
+**Version:** 1.2.0
 
 ---
 
@@ -124,6 +124,9 @@ No critical vulnerabilities identified. The core security architecture is sound.
 10. [x] Dependabot auto-merge for patch/minor updates
 11. [x] Add Zod validation for ranking data
 12. [x] Install fail2ban on all servers (SSH brute-force protection)
+13. [x] Add JWT payload validation to authMiddleware (Feb 11, 2026)
+14. [x] Set different SESSION_SECRETs for prod and dev (Feb 11, 2026)
+15. [x] Update mysql2 minimum version to ^3.9.8 (Feb 11, 2026)
 
 ### CodeQL Alerts - Reviewed & Dismissed
 The following alerts were reviewed and dismissed as false positives or intentional design:
@@ -179,10 +182,56 @@ Run this regularly. Dependabot is configured to auto-update patch/minor versions
 
 ---
 
+## Security Audit Part 2 (February 11, 2026)
+
+### Injection Attacks
+
+| Category | Status | Details |
+|----------|--------|---------|
+| SQL Injection | ✅ SECURE | All queries use parameterized statements (`pool.execute(sql, params)`) |
+| XSS | ✅ SECURE | React auto-escapes, no `dangerouslySetInnerHTML`, `eval()`, or `innerHTML` |
+| CSRF | ✅ SECURE | OAuth state tokens + SameSite cookies + Origin validation |
+
+### User Isolation
+
+| Check | Status | Details |
+|-------|--------|---------|
+| Can User A access User B's data? | ✅ NO | User ID comes from JWT, not user input |
+| Data queries | ✅ SECURE | `WHERE user_id = ?` uses `req.user.userId` from signed token |
+
+### JWT Token Handling
+
+| Aspect | Status | Details |
+|--------|--------|---------|
+| httpOnly Cookie | ✅ | Token not accessible via JavaScript |
+| Secure Flag | ✅ | Only HTTPS in production |
+| SameSite | ✅ | 'lax' - correct for OAuth flow |
+| Expiration Check | ✅ | Automatic via `jwt.verify()` |
+| Algorithm Confusion | ✅ | jsonwebtoken blocks `alg: none` |
+| **Payload Validation** | ✅ | **Added Feb 11** - validates userId, anilistId, username types |
+| **Separate Secrets** | ✅ | **Fixed Feb 11** - prod and dev use different SESSION_SECRETs |
+
+### Package Security
+
+| Check | Status | Details |
+|-------|--------|---------|
+| Typosquatting | ✅ | All 27 packages verified as legitimate |
+| NPX Commands | ✅ | None used in project |
+| mysql2 CVEs | ✅ | **Fixed Feb 11** - minimum version set to ^3.9.8 (was ^3.6.5) |
+| Dependency Confusion | ✅ | No private package names that could be hijacked |
+
+**CVEs Fixed:**
+- CVE-2024-21507 (Cache Poisoning)
+- CVE-2024-21508 (Remote Code Execution)
+- CVE-2024-21509 (Prototype Poisoning)
+- CVE-2024-21511 (Arbitrary Code Injection)
+
+---
+
 ## Conclusion
 
-The application has a **solid security foundation**. The main gaps are missing security headers and rate limiting, which are straightforward to add. No critical vulnerabilities were found.
+The application has a **solid security foundation**. All HIGH priority issues have been addressed, and Part 2 audit found no critical vulnerabilities.
 
 **Overall Security Grade: A-**
 
-All HIGH priority issues have been addressed. Remaining items are optional hardening for scale.
+Defense-in-depth approach implemented throughout: parameterized queries, JWT validation, input validation, rate limiting, security headers, and proper cookie configuration.
