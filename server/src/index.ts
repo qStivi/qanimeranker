@@ -1,15 +1,32 @@
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { collectDefaultMetrics, register, Counter, Histogram } from 'prom-client';
 import { config } from './config.js';
 import authRoutes from './routes/auth.js';
 import rankingsRoutes from './routes/rankings.js';
 import proxyRoutes from './routes/proxy.js';
 import healthRoutes from './routes/health.js';
+
+// Prometheus metrics
+collectDefaultMetrics({ prefix: 'animeranker_' });
+
+const httpRequestCounter = new Counter({
+  name: 'animeranker_http_requests_total',
+  help: 'Total HTTP requests',
+  labelNames: ['method', 'route', 'status'],
+});
+
+const httpRequestDuration = new Histogram({
+  name: 'animeranker_http_request_duration_seconds',
+  help: 'HTTP request duration in seconds',
+  labelNames: ['method', 'route'],
+  buckets: [0.01, 0.05, 0.1, 0.5, 1, 2, 5],
+});
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -60,6 +77,24 @@ const staticLimiter = rateLimit({
   max: 300, // 300 requests per minute for static assets
   standardHeaders: true,
   legacyHeaders: false,
+});
+
+// Prometheus metrics middleware
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = (Date.now() - start) / 1000;
+    const route = req.route?.path || req.path;
+    httpRequestCounter.inc({ method: req.method, route, status: res.statusCode });
+    httpRequestDuration.observe({ method: req.method, route }, duration);
+  });
+  next();
+});
+
+// Metrics endpoint (before rate limiting)
+app.get('/metrics', async (_req: Request, res: Response) => {
+  res.set('Content-Type', register.contentType);
+  res.end(await register.metrics());
 });
 
 // Middleware
