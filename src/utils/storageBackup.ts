@@ -1,4 +1,5 @@
 const STORAGE_KEY = 'anime_ranking_order';
+const BACKUP_IMPORTED_KEY = 'anime_ranking_backup_imported';
 
 export function exportBackup(): void {
   const data = localStorage.getItem(STORAGE_KEY);
@@ -30,6 +31,7 @@ export function importBackup(file: File): Promise<boolean> {
           throw new Error('Invalid backup format');
         }
         localStorage.setItem(STORAGE_KEY, data);
+        localStorage.setItem(BACKUP_IMPORTED_KEY, 'true');
         resolve(true);
       } catch {
         alert('Invalid backup file. Please select a valid JSON backup.');

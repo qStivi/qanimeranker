@@ -52,6 +52,7 @@ type RankingAction =
 const STORAGE_KEY = 'anime_ranking_order';
 const TITLE_FORMAT_KEY = 'anime_ranking_title_format';
 const VIEW_MODE_KEY = 'anime_ranking_view_mode';
+const BACKUP_IMPORTED_KEY = 'anime_ranking_backup_imported';
 
 function saveToStorage(items: RankingListItem[]) {
   const orderData = items.map(item => ({
@@ -203,8 +204,12 @@ function rankingReducer(state: RankingState, action: RankingAction): RankingStat
     }
 
     case 'LOAD_FROM_ENTRIES': {
-      // Priority: server data > localStorage > default (sorted by score)
-      const savedOrder = action.serverData ?? localStorage.getItem(STORAGE_KEY);
+      // If a backup was just imported, prefer localStorage over server data
+      const backupImported = localStorage.getItem(BACKUP_IMPORTED_KEY);
+      if (backupImported) localStorage.removeItem(BACKUP_IMPORTED_KEY);
+      const savedOrder = backupImported
+        ? localStorage.getItem(STORAGE_KEY)
+        : (action.serverData ?? localStorage.getItem(STORAGE_KEY));
       let items: RankingListItem[];
 
       if (savedOrder) {
