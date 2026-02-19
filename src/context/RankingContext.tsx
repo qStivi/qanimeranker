@@ -140,7 +140,14 @@ function rankingReducer(state: RankingState, action: RankingAction): RankingStat
     }
 
     case 'REMOVE_FOLDER': {
-      const newItems = state.items.filter(item => item.id !== action.id);
+      const folderIndex = state.items.findIndex(item => item.id === action.id);
+      const childItems = state.items
+        .filter(item => item.type === 'anime' && item.parentFolderId === action.id)
+        .map(item => ({ ...item, parentFolderId: undefined }));
+      const newItems = state.items.filter(
+        item => item.id !== action.id && !(item.type === 'anime' && item.parentFolderId === action.id)
+      );
+      newItems.splice(folderIndex, 0, ...childItems);
       saveToStorage(newItems);
       return { ...state, items: newItems };
     }
@@ -271,6 +278,14 @@ function rankingReducer(state: RankingState, action: RankingAction): RankingStat
               });
             }
           }
+
+          // Clean up orphaned items (parentFolderId pointing to non-existent folders)
+          const folderIds = new Set(items.filter(i => i.type === 'folder').map(i => i.id));
+          items = items.map(item =>
+            item.type === 'anime' && item.parentFolderId && !folderIds.has(item.parentFolderId)
+              ? { ...item, parentFolderId: undefined }
+              : item
+          );
         } catch {
           // Invalid saved data, use default order
           items = action.entries.map(entry => ({
