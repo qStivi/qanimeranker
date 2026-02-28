@@ -152,12 +152,9 @@ export async function getCompletedAnimeList(
     };
   }>(query, { userId });
 
-  // Only use the main "Completed" list, ignore custom lists to avoid duplicates
-  const completedList = data.MediaListCollection.lists.find(
-    list => list.name === 'Completed'
-  );
-
-  return completedList?.entries ?? [];
+  // The query already filters by status: COMPLETED, so all entries across all
+  // lists are completed anime (handles "Split Completed by Format" AniList setting)
+  return data.MediaListCollection.lists.flatMap(list => list.entries);
 }
 
 export async function updateAnimeScore(
