@@ -1,4 +1,5 @@
-import type { AniListMediaListEntry, AniListUser } from './types';
+import type { AniListMediaListEntry, AniListUser, MissingSequel, TitleFormat } from './types';
+import { getTitle } from '../utils/ratingCalculator';
 
 // API base URL - in development, Vite proxies to backend; in production, same origin
 const API_BASE = import.meta.env.VITE_API_URL || '';
@@ -139,6 +140,26 @@ export async function getCompletedAnimeList(
               }
               episodes
               format
+              relations {
+                edges {
+                  relationType
+                  node {
+                    id
+                    title {
+                      romaji
+                      english
+                      native
+                    }
+                    coverImage {
+                      large
+                    }
+                    format
+                    episodes
+                    status
+                    type
+                  }
+                }
+              }
             }
           }
         }
@@ -286,4 +307,61 @@ export async function syncScoresToAniList(
   });
 
   return { success, failed, errors };
+}
+
+export async function getAllUserAnimeIds(userId: number): Promise<Set<number>> {
+  const query = `
+    query ($userId: Int!) {
+      MediaListCollection(userId: $userId, type: ANIME) {
+        lists {
+          entries {
+            mediaId
+          }
+        }
+      }
+    }
+  `;
+
+  const data = await graphqlRequest<{
+    MediaListCollection: {
+      lists: Array<{ entries: Array<{ mediaId: number }> }>;
+    };
+  }>(query, { userId });
+
+  const ids = new Set<number>();
+  for (const list of data.MediaListCollection.lists) {
+    for (const entry of list.entries) {
+      ids.add(entry.mediaId);
+    }
+  }
+  return ids;
+}
+
+export function findMissingSequels(
+  completedEntries: AniListMediaListEntry[],
+  allUserAnimeIds: Set<number>,
+  titleFormat: TitleFormat
+): MissingSequel[] {
+  const seen = new Set<number>();
+  const results: MissingSequel[] = [];
+
+  for (const entry of completedEntries) {
+    const relations = entry.media.relations?.edges ?? [];
+    for (const edge of relations) {
+      if (edge.relationType !== 'SEQUEL') continue;
+      if (edge.node.type !== 'ANIME') continue;
+      if (edge.node.status === 'CANCELLED') continue;
+      if (allUserAnimeIds.has(edge.node.id)) continue;
+      if (seen.has(edge.node.id)) continue;
+
+      seen.add(edge.node.id);
+      results.push({
+        sequel: edge.node,
+        predecessor: entry.media,
+        predecessorTitle: getTitle(entry.media.title, titleFormat),
+      });
+    }
+  }
+
+  return results;
 }

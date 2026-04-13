@@ -5,6 +5,7 @@ import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { RankingList } from './components/RankingList';
 import { SyncPanel } from './components/SyncPanel';
+import { MissingSequelsModal } from './components/MissingSequelsModal';
 import { getCompletedAnimeList } from './api/anilist';
 import { fetchRankings } from './api/rankings';
 import type { CalculatedScore, AniListMediaListEntry } from './api/types';
@@ -17,6 +18,7 @@ function AppContent() {
   const [error, setError] = useState<string | null>(null);
   const [calculatedScores, setCalculatedScores] = useState<CalculatedScore[]>([]);
   const [resetting, setResetting] = useState(false);
+  const [showMissingSequels, setShowMissingSequels] = useState(false);
   const entriesRef = useRef<AniListMediaListEntry[]>([]);
 
   useEffect(() => {
@@ -123,11 +125,26 @@ function AppContent() {
               >
                 {resetting ? 'Resetting...' : 'Reset from AniList'}
               </button>
+              <button
+                className="missing-sequels-btn"
+                onClick={() => setShowMissingSequels(true)}
+                disabled={!state.isLoaded}
+              >
+                Find Missing Sequels
+              </button>
             </div>
           </div>
         )}
       </main>
       <Footer />
+      {showMissingSequels && user && (
+        <MissingSequelsModal
+          entries={entriesRef.current}
+          userId={user.id}
+          titleFormat={state.titleFormat}
+          onClose={() => setShowMissingSequels(false)}
+        />
+      )}
     </div>
   );
 }

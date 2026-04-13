@@ -16,11 +16,33 @@ export interface AniListMedia {
   format: string | null;
 }
 
+export interface AniListRelatedMedia extends AniListMedia {
+  status: string | null;
+  type: string | null;
+}
+
+export interface AniListRelationEdge {
+  relationType: string;
+  node: AniListRelatedMedia;
+}
+
+export interface AniListMediaWithRelations extends AniListMedia {
+  relations?: {
+    edges: AniListRelationEdge[];
+  };
+}
+
+export interface MissingSequel {
+  sequel: AniListRelatedMedia;
+  predecessor: AniListMedia;
+  predecessorTitle: string;
+}
+
 export interface AniListMediaListEntry {
   id: number;
   mediaId: number;
   score: number;
-  media: AniListMedia;
+  media: AniListMediaWithRelations;
 }
 
 export interface AniListUser {
