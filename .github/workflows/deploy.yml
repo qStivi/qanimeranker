@@ -6,73 +6,28 @@ on:
 
 jobs:
   build-and-deploy:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, anime-ranker]
     steps:
-      - uses: actions/checkout@v6
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install frontend dependencies
-        run: npm ci
-
-      - name: Install backend dependencies
-        run: cd server && npm ci
-
-      - name: Build frontend
-        run: npm run build
-        env:
-          VITE_ANILIST_CLIENT_ID: ${{ secrets.ANILIST_CLIENT_ID }}
-
-      - name: Build backend
-        run: cd server && npm run build
-
       - name: Set deployment environment
         id: env
         run: |
           if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            echo "DEPLOY_ENV=prod" >> $GITHUB_OUTPUT
             echo "DEPLOY_PATH=/opt/anime-ranker-prod" >> $GITHUB_OUTPUT
             echo "PM2_NAME=anime-ranker-prod" >> $GITHUB_OUTPUT
           else
-            echo "DEPLOY_ENV=dev" >> $GITHUB_OUTPUT
             echo "DEPLOY_PATH=/opt/anime-ranker-dev" >> $GITHUB_OUTPUT
             echo "PM2_NAME=anime-ranker-dev" >> $GITHUB_OUTPUT
           fi
 
-      - name: Install cloudflared
+      - name: Deploy
+        working-directory: ${{ steps.env.outputs.DEPLOY_PATH }}
+        env:
+          VITE_ANILIST_CLIENT_ID: ${{ secrets.ANILIST_CLIENT_ID }}
         run: |
-          curl -L --output cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
-          sudo dpkg -i cloudflared.deb
-
-      - name: Setup SSH key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-
-      - name: Configure SSH for Cloudflare Access
-        run: |
-          cat >> ~/.ssh/config << EOF
-          Host deploy-qanimeranker.qstivi.com
-            ProxyCommand cloudflared access ssh --hostname %h --id ${{ secrets.CF_ACCESS_CLIENT_ID }} --secret ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
-            User ${{ secrets.SERVER_USER }}
-            IdentityFile ~/.ssh/id_ed25519
-            StrictHostKeyChecking no
-          EOF
-
-      - name: Deploy to server
-        run: |
-          ssh deploy-qanimeranker.qstivi.com << 'ENDSSH'
-            cd ${{ steps.env.outputs.DEPLOY_PATH }}
-            git fetch origin
-            git checkout ${{ github.ref_name }}
-            git pull origin ${{ github.ref_name }}
-            npm ci
-            npm run build
-            cd server && npm ci && npm run build && cd ..
-            pm2 restart ${{ steps.env.outputs.PM2_NAME }} || pm2 start ecosystem.config.cjs --only ${{ steps.env.outputs.PM2_NAME }}
-          ENDSSH
+          git fetch origin
+          git checkout ${{ github.ref_name }}
+          git pull origin ${{ github.ref_name }}
+          npm ci
+          npm run build
+          cd server && npm ci && npm run build && cd ..
+          pm2 restart ${{ steps.env.outputs.PM2_NAME }} || pm2 start ecosystem.config.cjs --only ${{ steps.env.outputs.PM2_NAME }}
