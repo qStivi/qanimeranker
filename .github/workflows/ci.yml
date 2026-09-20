@@ -1,0 +1,38 @@
+name: CI
+
+# Job is deliberately named "build-and-deploy" to match the status check
+# already required by main's branch protection. deploy.yml (which triggers
+# on push, not pull_request) uses the same job name for the same reason —
+# this workflow only validates PRs, it never deploys anything.
+on:
+  pull_request:
+    branches: [main, dev]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Lint frontend
+        run: npm run lint
+
+      - name: Build frontend
+        run: npm run build
+        env:
+          VITE_ANILIST_CLIENT_ID: ${{ secrets.ANILIST_CLIENT_ID }}
+
+      - name: Install backend dependencies
+        run: cd server && npm ci
+
+      - name: Build backend
+        run: cd server && npm run build
